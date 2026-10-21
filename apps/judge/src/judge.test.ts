@@ -27,12 +27,14 @@ suite('judging a submission', () => {
   let tournamentId = ''
   let problemId = ''
   let languageId = ''
+  let authorId = ''
 
   beforeAll(async () => {
     if (!hasDatabase) return
 
     const organizer = await createTestUser('ORGANIZER')
     createdUsers.push(organizer.id)
+    authorId = organizer.id
 
     const tournament = await createTestTournament(organizer.id, {
       gameMode: 'ACM',
@@ -77,12 +79,16 @@ suite('judging a submission', () => {
     await cleanup(createdUsers)
   })
 
-  async function submit(sourceCode: string, userId: string) {
+  async function submit(
+    sourceCode: string,
+    userId: string,
+    target = problemId,
+  ) {
     const prisma = getPrisma()
     return prisma.submission.create({
       data: {
         tournamentId,
-        problemId,
+        problemId: target,
         userId,
         languageId,
         sourceCode,
@@ -205,24 +211,33 @@ suite('judging a submission', () => {
     createdUsers.push(player.id)
 
     const prisma = getPrisma()
-    const before = await prisma.problem.findUniqueOrThrow({
-      where: { id: problemId },
-      select: { solveCount: true },
+
+    // A problem of its own: the counter is shared state, and the other tests
+    // in this file solve the same one.
+    const own = await prisma.problem.create({
+      data: {
+        tournamentId,
+        authorId: authorId,
+        slug: `counter-${Date.now().toString(36)}`,
+        title: 'Counter',
+        statement: 'Count the solves.',
+      },
+      select: { id: true },
     })
 
-    const first = await submit('print(sum)', player.id)
+    const first = await submit('print(sum)', player.id, own.id)
     await judgeSubmission({ submissionId: first.id })
 
     // A second accepted submission for the same problem must not count twice.
-    const second = await submit('print(sum)', player.id)
+    const second = await submit('print(sum)', player.id, own.id)
     await judgeSubmission({ submissionId: second.id })
 
-    const after = await prisma.problem.findUniqueOrThrow({
-      where: { id: problemId },
+    const counter = await prisma.problem.findUniqueOrThrow({
+      where: { id: own.id },
       select: { solveCount: true },
     })
 
-    expect(after.solveCount).toBe(before.solveCount + 1)
+    expect(counter.solveCount).toBe(1)
   })
 
   it('reaps a submission that was never judged', async () => {
