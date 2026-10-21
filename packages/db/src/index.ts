@@ -1,9 +1,11 @@
 export type {
   Language,
+  Organization,
   Prisma,
   ScoreEvent,
   ScoreSnapshot,
   Submission,
+  Team,
   Tournament,
   User,
 } from '../generated/prisma/client'

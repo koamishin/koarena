@@ -98,11 +98,12 @@ function LandingPage() {
           scoring and the judging pipeline.
         </p>
         <div className="flex flex-wrap items-center gap-3">
-          <Button render={<Link to="/tournaments" />}>
+          <Button nativeButton={false} render={<Link to="/tournaments" />}>
             Browse tournaments
           </Button>
           <Button
             variant="outline"
+            nativeButton={false}
             render={<Link to="/sign-up/$" params={{ _splat: '' }} />}
           >
             Create an account
@@ -167,6 +168,7 @@ function LandingPage() {
         <Button
           variant="outline"
           className="ml-auto shrink-0"
+          nativeButton={false}
           render={<Link to="/organizer" />}
         >
           Open the organizer view

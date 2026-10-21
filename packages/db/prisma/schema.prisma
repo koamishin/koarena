@@ -444,19 +444,23 @@ model TeamMember {
 }
 
 model TeamInvite {
-  id         String    @id @default(cuid(2)) @map("id")
-  teamId     String    @map("team_id")
-  senderId   String    @map("sender_id")
-  receiverId String    @map("receiver_id")
-  token      String    @unique @map("token")
-  expiresAt  DateTime  @map("expires_at")
-  acceptedAt DateTime? @map("accepted_at")
-  createdAt  DateTime  @default(now()) @map("created_at")
-  team       Team      @relation(fields: [teamId], references: [id], onDelete: Cascade)
-  sender     User      @relation("InviteSender", fields: [senderId], references: [id], onDelete: Cascade)
-  receiver   User      @relation("InviteReceiver", fields: [receiverId], references: [id], onDelete: Cascade)
+  id            String    @id @default(cuid(2)) @map("id")
+  teamId        String    @map("team_id")
+  senderId      String    @map("sender_id")
+  /// Null until the invite is accepted — an invite can be issued to an email
+  /// address that has no KoArena account yet.
+  receiverId    String?   @map("receiver_id")
+  receiverEmail String    @map("receiver_email")
+  token         String    @unique @map("token")
+  expiresAt     DateTime  @map("expires_at")
+  acceptedAt    DateTime? @map("accepted_at")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  team          Team      @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  sender        User      @relation("InviteSender", fields: [senderId], references: [id], onDelete: Cascade)
+  receiver      User?     @relation("InviteReceiver", fields: [receiverId], references: [id], onDelete: Cascade)
 
   @@index([receiverId])
+  @@index([receiverEmail])
   @@map("team_invites")
 }
 

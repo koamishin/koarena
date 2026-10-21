@@ -89,6 +89,48 @@ export type { GolfConfig } from './modes/golf'
 export type { HackathonConfig } from './modes/hackathon'
 export type { KnockoutConfig } from './modes/knockout'
 export type { PolyglotConfig } from './modes/polyglot'
+
+/**
+ * The database enum value for each mode.
+ *
+ * The enum values match Prisma's `GameMode` enum, so the mapping lives here
+ * rather than in the app: the engine is the only place that knows what a mode
+ * is called.
+ */
+export const GAME_MODE_IDS_BY_ENUM = {
+  CTF: 'ctf',
+  ATTACK_DEFENSE: 'attackDefense',
+  HACKATHON: 'hackathon',
+  ACM: 'acm',
+  POLYGLOT_BATTLE: 'polyglot',
+  CODE_GOLF: 'golf',
+  BUG_HUNT: 'bugHunt',
+  KNOCKOUT: 'knockout',
+} as const satisfies Record<string, GameModeId>
+
+export type GameModeEnum = keyof typeof GAME_MODE_IDS_BY_ENUM
+
+export function toGameModeId(enumValue: string): GameModeId {
+  const id = GAME_MODE_IDS_BY_ENUM[enumValue as GameModeEnum]
+  if (!id) throw new Error(`Unknown game mode: ${enumValue}`)
+  return id
+}
+
+/** Every mode, with the label and the config an organizer starts from. */
+export function listModes(): Array<{
+  id: GameModeId
+  enum: GameModeEnum
+  label: string
+  defaultConfig: unknown
+}> {
+  return Object.entries(GAME_MODE_IDS_BY_ENUM).map(([enumValue, id]) => ({
+    id,
+    enum: enumValue as GameModeEnum,
+    label: getMode(id).label,
+    defaultConfig: getMode(id).defaultConfig,
+  }))
+}
+
 export * from './types'
 export {
   acmConfigSchema,

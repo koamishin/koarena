@@ -107,8 +107,29 @@ export default defineConfig({
 
 Serverless creates many short-lived DB connections. The pooler is what keeps Postgres
 alive. Check the provider's connection limit against: Vercel function concurrency +
-the worker + your psql sessions. Neon and Supabase both scale the pooler automatically
-on paid plans.
+the worker + your psql sessions. Neon, Supabase and Prisma Postgres all scale the
+pooler automatically on paid plans.
+
+### Which URL to use
+
+```bash
+# Prisma Postgres (pooled TCP) — the shape KoArena is developed against
+DATABASE_URL="postgres://<id>:<key>@pooled.db.prisma.io:5432/postgres?sslmode=verify-full"
+
+# Neon
+DATABASE_URL="postgresql://...@ep-xxx-pooler.region.aws.neon.tech/postgres?sslmode=require"
+
+# Supabase
+DATABASE_URL="postgresql://...@db.xxx.supabase.co:5432/postgres?sslmode=require"
+```
+
+Always the **pooled** endpoint, never a direct one — serverless concurrency will
+exhaust direct connections. `sslmode=verify-full` verifies the server
+certificate's hostname; `require` encrypts but does not verify it, and
+node-postgres warns about the weaker mode.
+
+> **Do not use Prisma Accelerate.** Standalone Accelerate and hosted
+> `prisma+postgres://` connections are **retired 2026-12-01**. Use a pooled TCP URL.
 
 ---
 

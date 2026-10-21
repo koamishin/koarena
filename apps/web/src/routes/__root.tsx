@@ -6,6 +6,7 @@ import { TanStackRouterDevtoolsPanel } from '@tanstack/react-router-devtools'
 
 import { KoArenaFooter } from '../components/KoArenaFooter'
 import { KoArenaHeader } from '../components/KoArenaHeader'
+import { Toaster } from '../components/ui/sonner'
 import { TooltipProvider } from '../components/ui/tooltip'
 
 import appCss from '../styles.css?url'
@@ -27,7 +28,10 @@ export const Route = createRootRoute({
           'Run CTFs, hackathons, attack & defense and algorithmic rounds. One platform, eight game modes, any set of languages.',
       },
     ],
-    links: [{ rel: 'stylesheet', href: appCss }],
+    links: [
+      { rel: 'stylesheet', href: appCss },
+      { rel: 'icon', type: 'image/svg+xml', href: '/icon.svg' },
+    ],
   }),
   shellComponent: RootDocument,
 })
@@ -49,6 +53,7 @@ function RootDocument({ children }: { children: React.ReactNode }) {
               <main className="flex-1">{children}</main>
               <KoArenaFooter />
             </div>
+            <Toaster position="bottom-right" />
           </TooltipProvider>
         </ClerkProvider>
         <TanStackDevtools

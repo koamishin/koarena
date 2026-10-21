@@ -1,5 +1,3 @@
-<img src="assets/icon.svg" width="64" height="64" alt="">
-
 # KoArena
 
 Tournament platform for programmers — CTF, hackathons, attack &amp; defense, algorithmic
@@ -16,6 +14,7 @@ Created in [T3 Code](https://t3.codes).
 | Auth | Clerk (`@clerk/tanstack-react-start`) |
 | Design | shadcn/ui (Base UI, `base-nova`) + [ReUI](https://reui.io) on Tailwind CSS v4 |
 | Scoring | `@koarena/game` — a pure, dependency-free scoring engine |
+| Realtime | Server-Sent Events over Redis pub/sub |
 | Tooling | pnpm workspaces + Turborepo, Biome, Vitest, Playwright |
 
 ## Layout
@@ -32,16 +31,67 @@ docs            Plan, game modes, routes, deployment
 
 ```bash
 pnpm install
-pnpm infra:up                    # Postgres + Redis
-cp .env.example packages/db/.env # then set DATABASE_URL
+cp .env.example packages/db/.env    # point DATABASE_URL at your Postgres
+cp .env.example apps/web/.env
 pnpm db:generate
 pnpm db:migrate
-pnpm db:seed                     # 23 languages + a demo organization
-pnpm dev                         # http://localhost:3000
+pnpm db:seed                       # 23 languages + a demo organization
+pnpm dev                           # http://localhost:3100
 ```
 
-Clerk signs you in. `apps/web/.env.local` already holds development keys; run
+`apps/web/.env.local` holds the Clerk development keys. Run
 `npx clerk@latest auth login` to claim the application.
+
+> The dev server is pinned to **port 3100** (`--strictPort`). Clerk ties its
+> sign-in redirect to the origin, so a changing port breaks the flow.
+
+### Database
+
+Any Postgres works. Two shapes are supported:
+
+```bash
+# Managed Postgres, pooled TCP — recommended
+DATABASE_URL="postgres://user:pass@host:5432/db?sslmode=verify-full"
+
+# Local Docker Postgres (pnpm infra:up)
+DATABASE_URL="postgresql://postgres:postgres@localhost:5432/koarena"
+```
+
+Use the **pooled** endpoint, not a direct one: serverless concurrency will
+exhaust direct connections. `sslmode=verify-full` verifies the server
+certificate's hostname; `require` works too but does not.
+
+## The server/client boundary
+
+TanStack Start compiles server functions into RPC stubs for the browser, but only
+if server-only code is genuinely server-only. KoArena uses three layers:
+
+```
+features/<domain>/
+├── <domain>.server.ts      server-only: DB calls, Clerk calls — never imported by the client
+├── <domain>.functions.ts   createServerFn wrappers — safe to import anywhere
+├── types.ts                DTO types — importable from components
+└── components/             client components
+```
+
+`*.server.ts` files are **denied in the client environment** by TanStack Start's
+import protection, which is configured to fail the production build:
+
+```ts
+// apps/web/vite.config.ts
+tanstackStart({
+  importProtection: { behavior: { dev: 'mock', build: 'error' } },
+})
+```
+
+Two rules keep this working:
+
+1. A `*.server.ts` module may only be referenced **inside** a server function
+   handler. A helper that touches the database outside a handler keeps the import
+   alive and the build fails.
+2. Server function return types must be **serializable**. A `Date` or an
+   `unknown` in a return type collapses the inferred type — return ISO strings
+   and use `JsonValue` for config objects.
 
 ## Commands
 
@@ -51,7 +101,7 @@ Clerk signs you in. `apps/web/.env.local` already holds development keys; run
 | `pnpm build` | Build all packages |
 | `pnpm lint` | Biome check |
 | `pnpm typecheck` | `tsc --noEmit` across the workspace |
-| `pnpm test` | Vitest across the workspace |
+| `pnpm test` | Vitest across the workspace (the DB suites need `DATABASE_URL`) |
 | `pnpm db:generate` / `db:migrate` / `db:deploy` / `db:seed` / `db:studio` | Prisma |
 | `pnpm infra:up` / `infra:down` | Local Postgres, Redis (and MinIO with `--profile storage`) |
 

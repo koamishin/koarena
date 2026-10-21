@@ -466,9 +466,9 @@ Each phase ends with something demonstrable, not just merged code.
 
 | Phase | Scope | Exit criteria | Status |
 | --- | --- | --- | --- |
-| **0 · Foundations** | Monorepo, TanStack Start 1.0, Tailwind v4, shadcn + ReUI, Prisma 7 + managed Postgres, Redis, Docker Compose, CI, Biome, Vitest, Clerk init | App boots, `/` renders, DB migrated, Clerk sign-in works, one ReUI `data-grid` on a fake table, CI green | **Done** |
-| **1 · Identity & org** | Clerk middleware, roles, teams, orgs, tournament CRUD, organizer wizard step 1–2 | Organizer creates a tournament; player registers a team and joins | Next |
-| **2 · CTF vertical slice** | Challenges, categories, hints, encrypted flags, submissions, dynamic scoring, **live scoreboard over SSE** | Full CTF playable end-to-end with 3 teams and a live board | |
+| **0 · Foundations** | Monorepo, TanStack Start 1.0, Tailwind v4, shadcn + ReUI, Prisma 7 + managed Postgres, Redis, Docker Compose, CI, Biome, Vitest, Clerk init | App boots, `/` renders, DB migrated, Clerk sign-in works, one ReUI `data-grid` on a real table, CI green | **Done** |
+| **1 · Identity & org** | Clerk roles + sync, teams + invites, tournament CRUD, the organizer wizard, public browse + registration | Organizer creates a tournament; player registers a team and joins | **Done** |
+| **2 · CTF vertical slice** | Challenges, categories, hints, encrypted flags, submissions, dynamic scoring, **live scoreboard over SSE** | Full CTF playable end-to-end with 3 teams and a live board | Next |
 | **3 · Code runner** | Monaco editor, Judge0 integration, BullMQ worker on the worker host, ACM mode, test cases, penalties | ACM tournament playable; verdicts stream to the UI | |
 | **4 · Hackathon** | Project submissions, rubrics, judge assignment, judge queue, awards | Hackathon from submit → rubric scoring → results | |
 | **5 · Security & scale** | Plagiarism detection, audit log, moderation, rate limits, observability, load test | 500 concurrent players on one tournament, board < 200 ms p95 | |
@@ -483,13 +483,42 @@ the critical path; phases 6–7 add modes on top of a proven engine.
 | Piece | Where |
 | --- | --- |
 | pnpm workspace + Turborepo | `package.json`, `pnpm-workspace.yaml`, `turbo.json` |
-| TanStack Start 1.0 app | `apps/web` — routes for `/`, `/tournaments`, `/leaderboard`, `/organizer`, `/dashboard`, `/sign-in`, `/sign-up` |
-| Prisma 7 + Postgres | `packages/db` — 48 models, initial migration applied, 23 languages seeded |
+| TanStack Start 1.0 app | `apps/web` — routes for `/`, `/tournaments`, `/leaderboard`, `/organizer`, `/teams`, `/dashboard`, `/sign-in`, `/sign-up` |
+| Prisma 7 + Postgres | `packages/db` — 48 models, migrations applied, 23 languages seeded |
 | Scoring engine | `packages/game` — all 8 modes, 26 unit tests, no I/O |
-| Design system | shadcn/ui `base-nova` + ReUI `data-grid`, `frame`, `badge`, `alert`, `filters` |
-| Auth | Clerk — provider, request middleware, sign-in/up routes, `requireUser` guard |
+| Design system | shadcn/ui `base-nova` + ReUI `data-grid`, `frame`, `badge`, `alert`, `filters`, `stepper` |
+| Auth | Clerk — provider, request middleware, sign-in/up routes, `requireUser` guard, webhook sync |
 | Local infra | `infra/docker-compose.yml` — Postgres 17, Redis 7, MinIO (optional profile) |
 | Tooling | Biome 2.5, Vitest 5, GitHub Actions CI |
+
+### Phase 1 — what was built
+
+| Piece | Where |
+| --- | --- |
+| Clerk user sync | `features/auth/auth.server.ts` — lazy sync on first request, webhook keeps it fresh |
+| Roles | `User.role` mirrored from Clerk `publicMetadata.role`; creating a tournament grants ORGANIZER |
+| Teams | `features/teams/` — create, rename, delete, invite by email, accept, revoke, remove, leave |
+| Tournaments | `features/tournaments/` — create, update, publish (draft → scheduled → registration), register, withdraw |
+| Wizard | `features/tournaments/wizard/` — 4 steps, config validated by the scoring engine |
+| Public pages | `/tournaments` list (drafts hidden), `/tournaments/$slug` detail with registration |
+| Organizer pages | `/organizer` list, `/organizer/new` wizard, `/organizer/$tournamentId` control room |
+| Tests | 21 integration tests against the real database |
+
+**Server/client boundary.** TanStack Start's import protection is enabled with
+`behavior: { dev: 'mock', build: 'error' }`, so server-only code reaching the
+browser fails the production build. The code is split three ways per domain:
+`<domain>.server.ts` (server-only), `<domain>.functions.ts` (`createServerFn`
+wrappers) and `types.ts` (DTOs).
+
+**Serializable returns.** Server functions return ISO strings, not `Date` objects,
+and config objects use a `JsonValue` type. A single `Date` or `unknown` in a
+return type collapses the inferred type across the network boundary.
+
+**Bugs the tests caught.** Draft tournaments were appearing in the public list;
+`Base UI`'s `Button` drops button semantics when it renders a link (`render`
+needs `nativeButton={false}`); a `Date` reached the grid where a string was
+expected; and `/organizer/new` was gated behind the organizer role that only
+creating a tournament grants.
 
 ---
 

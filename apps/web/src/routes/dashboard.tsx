@@ -55,6 +55,7 @@ function DashboardPage() {
             <Button
               size="sm"
               variant="outline"
+              nativeButton={false}
               render={<Link to="/tournaments" />}
             >
               Browse tournaments
@@ -73,6 +74,7 @@ function DashboardPage() {
             <Button
               size="sm"
               variant="outline"
+              nativeButton={false}
               render={<Link to="/dashboard" />}
             >
               Create a team

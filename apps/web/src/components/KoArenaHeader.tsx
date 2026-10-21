@@ -49,12 +49,14 @@ export function KoArenaHeader() {
             <Button
               size="sm"
               variant="outline"
+              nativeButton={false}
               render={<Link to="/sign-in/$" params={{ _splat: '' }} />}
             >
               Sign in
             </Button>
             <Button
               size="sm"
+              nativeButton={false}
               render={<Link to="/sign-up/$" params={{ _splat: '' }} />}
             >
               Join KoArena
@@ -63,7 +65,24 @@ export function KoArenaHeader() {
           <Show when="signed-in">
             <Button
               size="sm"
+              variant="ghost"
+              nativeButton={false}
+              render={<Link to="/teams" />}
+            >
+              Teams
+            </Button>
+            <Button
+              size="sm"
               variant="outline"
+              nativeButton={false}
+              render={<Link to="/organizer" />}
+            >
+              Organize
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              nativeButton={false}
               render={<Link to="/dashboard" />}
             >
               Dashboard
