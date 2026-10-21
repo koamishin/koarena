@@ -676,4 +676,4 @@ Still open, and easy to change later:
 | Toolchain | Node `22.22.1`, npm `10.9.9`, **pnpm `10.34.7`** (installed to `~/.local/bin`), Bun `1.3.14` |
 | Local infra | Postgres 17 + Redis 7 running via `infra/docker-compose.yml`; MinIO behind the optional `storage` profile |
 | Database | 49 tables created by the initial migration, 23 languages + a demo organization seeded |
-| Repo | `main` branch — plan committed, then the Phase 0 implementation |
+| Repo | `main` branch — the plan, then Phases 0–3 as separate commits |

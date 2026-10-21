@@ -54,6 +54,8 @@
   .phase{display:flex;align-items:center;gap:13px;padding:9px 0;border-top:1px solid var(--line)}
   .phase:first-child{border-top:0}
   .phase .p{font:700 10.5px/1 var(--mono);color:#0b0d12;background:var(--acc);border-radius:5px;padding:5px 8px;flex-shrink:0}
+  .phase.done .p{background:var(--ok)}
+  .phase.done .nm::after{content:' — done';color:var(--ok);font-weight:500}
   .phase .nm{font-weight:600;font-size:13px;width:180px;flex-shrink:0}
   .phase .ex{color:var(--fg2);font-size:12.5px}
   .warn{background:rgba(224,177,85,.08);border:1px solid #4a3c1e;border-radius:10px;padding:12px 15px;color:#e8cf9b;font-size:12.5px}
@@ -202,10 +204,10 @@
 
 <section>
   <h2>Delivery roadmap — milestone 1 is CTF + ACM + Hackathon</h2>
-  <div class="phase"><span class="p">P0</span><span class="nm">Foundations</span><span class="ex">Monorepo, Start 1.0, Tailwind v4, shadcn + ReUI, Prisma 7 + managed Postgres, Redis, Docker Compose, CI, Clerk init.</span></div>
-  <div class="phase"><span class="p">P1</span><span class="nm">Identity &amp; org</span><span class="ex">Clerk middleware, roles, teams, tournament CRUD, organizer wizard.</span></div>
-  <div class="phase"><span class="p">P2</span><span class="nm">CTF vertical slice</span><span class="ex">Challenges, encrypted flags, dynamic scoring, live scoreboard over SSE.</span></div>
-  <div class="phase"><span class="p">P3</span><span class="nm">Code runner</span><span class="ex">Monaco, Judge0, BullMQ worker on the worker host, ACM mode, test cases, penalties.</span></div>
+  <div class="phase done"><span class="p">P0</span><span class="nm">Foundations</span><span class="ex">Monorepo, Start 1.0, Tailwind v4, shadcn + ReUI, Prisma 7 + managed Postgres, Redis, Docker Compose, CI, Clerk init.</span></div>
+  <div class="phase done"><span class="p">P1</span><span class="nm">Identity &amp; org</span><span class="ex">Clerk middleware, roles, teams, tournament CRUD, organizer wizard.</span></div>
+  <div class="phase done"><span class="p">P2</span><span class="nm">CTF vertical slice</span><span class="ex">Challenges, encrypted flags, dynamic scoring, live scoreboard over SSE.</span></div>
+  <div class="phase done"><span class="p">P3</span><span class="nm">Code runner</span><span class="ex">Monaco, Judge0, BullMQ worker on the worker host, ACM mode, test cases, penalties.</span></div>
   <div class="phase"><span class="p">P4</span><span class="nm">Hackathon</span><span class="ex">Project submissions, rubrics, judge assignment, judge queue, awards.</span></div>
   <div class="phase"><span class="p">P5</span><span class="nm">Security &amp; scale</span><span class="ex">Plagiarism detection, audit log, moderation, rate limits, load test to 500 players.</span></div>
   <div class="phase"><span class="p">P6</span><span class="nm">Attack &amp; Defense</span><span class="ex">Service deployment, bots, attack capture, patch scoring, kill feed.</span></div>
