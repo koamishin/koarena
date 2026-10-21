@@ -1,4 +1,4 @@
-import { createFileRoute, Link, useRouter } from '@tanstack/react-router'
+import { createFileRoute, useRouter } from '@tanstack/react-router'
 import { KeyRoundIcon, PlusIcon } from 'lucide-react'
 import { useState } from 'react'
 import { toast } from 'sonner'
@@ -259,15 +259,11 @@ function OrganizerChallengesPage() {
                   Add hint
                 </Button>
 
-                <Link
-                  to="/organizer/$tournamentId/challenges"
-                  params={{ tournamentId: tournament.id }}
-                  className="ml-auto text-xs text-muted-foreground hover:text-foreground hover:underline"
-                >
+                <span className="ml-auto text-xs text-muted-foreground">
                   {challenge.flagCount > 0
                     ? `${challenge.flagCount} flag stored`
                     : 'no flag yet'}
-                </Link>
+                </span>
               </CardContent>
 
               {flagFor === challenge.id ? (

@@ -87,18 +87,39 @@ const CHALLENGES = [
   },
 ] as const
 
+/**
+ * The demo's organizer.
+ *
+ * KoArena mirrors Clerk users, so the organizer is whichever account signed in
+ * with DEMO_OWNER_EMAIL. Until that account has signed in at least once there
+ * is no row to point at, so a placeholder stands in and the organizer's own
+ * screens stay empty for them.
+ */
 async function main() {
-  const owner = await prisma.user.upsert({
-    where: { id: 'user_demo_organizer' },
-    update: {},
-    create: {
-      id: 'user_demo_organizer',
-      email: 'demo-organizer@koarena.dev',
-      firstName: 'Demo',
-      lastName: 'Organizer',
-      role: 'ORGANIZER',
-    },
+  const ownerEmail =
+    process.env.DEMO_OWNER_EMAIL ?? 'organizer+clerk_test@example.com'
+
+  const existing = await prisma.user.findUnique({
+    where: { email: ownerEmail },
+    select: { id: true },
   })
+
+  const owner = existing
+    ? await prisma.user.update({
+        where: { id: existing.id },
+        data: { role: 'ORGANIZER' },
+      })
+    : await prisma.user.upsert({
+        where: { id: 'user_demo_organizer' },
+        update: { role: 'ORGANIZER' },
+        create: {
+          id: 'user_demo_organizer',
+          email: ownerEmail,
+          firstName: 'Demo',
+          lastName: 'Organizer',
+          role: 'ORGANIZER',
+        },
+      })
 
   const slug = 'demo-ctf'
 

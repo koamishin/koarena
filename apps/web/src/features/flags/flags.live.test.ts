@@ -98,7 +98,8 @@ suite('the live bus', () => {
   })
 
   it('publishes a solve event to the live channel', async () => {
-    const organizer = createdUsers[0]!
+    const organizer = createdUsers[0]
+    if (!organizer) throw new Error('expected an organizer')
     const challenge = await createChallengeFor(organizer, {
       title: 'Live challenge',
       slug: `live-challenge-${uniqueSuffix()}`,
@@ -177,5 +178,6 @@ async function createChallengeFor(
     select: { id: true },
   })
 
-  return createChallenge(tournament!.id, organizerId, input)
+  if (!tournament) throw new Error('expected a tournament')
+  return createChallenge(tournament.id, organizerId, input)
 }

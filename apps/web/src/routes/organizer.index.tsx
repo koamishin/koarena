@@ -58,10 +58,11 @@ function OrganizerIndexPage() {
 
       <div className="flex items-center gap-2">
         <Badge variant="outline" size="sm">
-          Phase 1
+          Phase 2
         </Badge>
         <p className="text-xs text-muted-foreground">
-          Challenges, the live scoreboard and the control room arrive next.
+          Challenges and flags live under each tournament. The live scoreboard
+          is one click away.
         </p>
       </div>
     </div>

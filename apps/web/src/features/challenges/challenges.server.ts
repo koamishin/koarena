@@ -41,7 +41,7 @@ export async function getChallengeBoard(
 
   const tournament = await prisma.tournament.findUnique({
     where: { id: tournamentId },
-    select: { id: true, gameMode: true, config: true },
+    select: { id: true, gameMode: true },
   })
 
   if (!tournament) {
@@ -94,9 +94,6 @@ export async function getChallengeBoard(
       : undefined
 
     const now = Date.now()
-    const revealedHints = challenge.hints.filter(
-      (hint) => !hint.unlocksAt || hint.unlocksAt.getTime() <= now,
-    )
 
     return {
       id: challenge.id,
