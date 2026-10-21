@@ -561,6 +561,14 @@ These only showed up in a real browser driving the app, not in the unit tests:
   tournament grants — a player could not start one.
 - The tournament page forced a player to have a team, although a solo
   registration is a first-class option in the schema.
+- `/organizer/$tournamentId` rendered a page without an `<Outlet/>`, so its
+  child — the challenge manager — never appeared: the URL resolved and the
+  control room showed instead. It is a layout now.
+
+**A parent route must render an `<Outlet/>`.** TanStack's file-based router
+makes a flat file the parent of the directory beside it, and a directory with
+an index route needs an explicit parent. Both mistakes look like "the page is
+wrong" rather than "the page is missing".
 
 ---
 
