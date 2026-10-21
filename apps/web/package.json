@@ -11,7 +11,7 @@
     "build": "vite build",
     "start": "node dist/server/server.js",
     "preview": "vite preview",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsr generate && tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest"
   },

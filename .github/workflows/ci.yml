@@ -71,6 +71,11 @@ jobs:
       - name: Apply migrations
         run: pnpm db:deploy
 
+      - name: Generate the route tree
+        # The route tree is generated, not committed: without it every
+        # createFileRoute() call collapses to `never` and the typecheck fails.
+        run: pnpm --filter @koarena/web generate-routes
+
       - name: Lint and format
         run: pnpm lint
 
