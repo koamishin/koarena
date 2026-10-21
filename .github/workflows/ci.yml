@@ -71,6 +71,10 @@ jobs:
       - name: Apply migrations
         run: pnpm db:deploy
 
+      - name: Seed the language registry
+        # The suites need the languages; the seed is idempotent.
+        run: pnpm db:seed
+
       - name: Generate the route tree
         # The route tree is generated, not committed: without it every
         # createFileRoute() call collapses to `never` and the typecheck fails.

@@ -46,8 +46,19 @@ suite('judging a submission', () => {
     })
     tournamentId = tournament.id
 
-    const language = await getPrisma().language.findFirstOrThrow({
+    // The seed provides the language registry, but a test that depends on the
+    // seed is fragile: create the language if it is not there.
+    const language = await getPrisma().language.upsert({
       where: { slug: 'python' },
+      update: {},
+      create: {
+        slug: 'python',
+        name: 'Python',
+        category: 'PROGRAMMING',
+        judge0Id: 71,
+        editorMode: 'python',
+        extensions: ['.py'],
+      },
       select: { id: true },
     })
     languageId = language.id
