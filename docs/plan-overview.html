@@ -1,0 +1,225 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>KoArena — Plan Overview</title>
+<style>
+  :root{
+    --bg:#0b0d12; --panel:#12151c; --panel2:#161a23; --line:#242a36; --line2:#2f3745;
+    --fg:#e7eaf0; --fg2:#a7b0c0; --fg3:#727d90;
+    --acc:#7aa2ff; --acc-dim:#2b3a63; --ok:#4ec9a4; --warn:#e0b155; --vio:#a98bf0;
+    --mono:ui-monospace,"SF Mono",SFMono-Regular,Menlo,Consolas,monospace;
+    --sans:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Inter,Roboto,sans-serif;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--sans);font-size:14px;line-height:1.55;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:1160px;margin:0 auto;padding:36px 24px 56px}
+  h1{font-size:29px;letter-spacing:-.02em;margin:0 0 6px;font-weight:650}
+  h2{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--fg3);font-weight:600;margin:0 0 14px}
+  .sub{color:var(--fg2);font-size:14.5px;max-width:74ch;margin:0 0 16px}
+  .meta{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:38px}
+  .chip{font:500 11.5px/1 var(--mono);padding:6px 10px;border:1px solid var(--line2);border-radius:999px;color:var(--fg2);background:var(--panel)}
+  .chip b{color:var(--fg);font-weight:600}
+  section{margin-bottom:40px}
+  .grid{display:grid;gap:11px}
+  .modes{grid-template-columns:repeat(4,1fr)}
+  .mode{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:13px;display:flex;flex-direction:column;gap:8px}
+  .mode .top{display:flex;align-items:center;justify-content:space-between;gap:8px}
+  .mode .nm{font-weight:640;font-size:13.5px;letter-spacing:-.01em}
+  .mode .mech{color:var(--fg2);font-size:12.5px;line-height:1.45;flex:1}
+  .mode .fx{font:11px/1.45 var(--mono);color:var(--acc);background:rgba(122,162,255,.07);border:1px solid var(--acc-dim);border-radius:6px;padding:7px 8px;word-break:break-word}
+  .tag{font:600 9.5px/1 var(--mono);padding:4px 7px;border-radius:5px;border:1px solid var(--line2);color:var(--fg3);white-space:nowrap}
+  .needs{display:flex;gap:5px}
+  .needs span{font:600 9.5px/1 var(--mono);padding:3px 6px;border-radius:4px;background:var(--panel2);border:1px solid var(--line);color:var(--fg3)}
+  .needs span.on{background:rgba(78,201,164,.13);border-color:#2f5f51;color:var(--ok)}
+  .arch{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px}
+  .row{display:flex;align-items:center;gap:12px;justify-content:center}
+  .node{background:var(--panel2);border:1px solid var(--line2);border-radius:9px;padding:10px 13px;text-align:center;min-width:126px}
+  .node .t{font-weight:600;font-size:12.5px}
+  .node .d{font:10.5px/1.4 var(--mono);color:var(--fg3);margin-top:3px}
+  .node.hl{border-color:var(--acc);box-shadow:0 0 0 1px rgba(122,162,255,.22)}
+  .arrow{color:var(--fg3);font-size:15px;line-height:1}
+  .store{border-left:2px solid var(--line2);padding-left:13px}
+  .store .t{font:600 9.5px/1 var(--mono);letter-spacing:.1em;color:var(--fg3);text-transform:uppercase;margin-bottom:8px}
+  .stack{display:grid;grid-template-columns:repeat(4,1fr);gap:11px}
+  .col{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:13px}
+  .col h3{margin:0 0 10px;font-size:10.5px;letter-spacing:.11em;text-transform:uppercase;color:var(--fg3);font-weight:600}
+  .row2{display:flex;justify-content:space-between;gap:10px;padding:5px 0;border-top:1px solid var(--line);font-size:12.5px}
+  .row2:first-of-type{border-top:0}
+  .row2 .k{color:var(--fg2)}
+  .row2 .v{font:11px/1.4 var(--mono);color:var(--fg);text-align:right;white-space:nowrap}
+  .steps{display:grid;grid-template-columns:repeat(6,1fr);gap:9px}
+  .step{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px}
+  .step .n{font:700 10px/1 var(--mono);color:var(--acc);margin-bottom:7px;display:block}
+  .step .t{font-weight:600;font-size:12.5px;margin-bottom:4px}
+  .step .d{color:var(--fg2);font-size:11.5px;line-height:1.45}
+  .phase{display:flex;align-items:center;gap:13px;padding:9px 0;border-top:1px solid var(--line)}
+  .phase:first-child{border-top:0}
+  .phase .p{font:700 10.5px/1 var(--mono);color:#0b0d12;background:var(--acc);border-radius:5px;padding:5px 8px;flex-shrink:0}
+  .phase .nm{font-weight:600;font-size:13px;width:180px;flex-shrink:0}
+  .phase .ex{color:var(--fg2);font-size:12.5px}
+  .warn{background:rgba(224,177,85,.08);border:1px solid #4a3c1e;border-radius:10px;padding:12px 15px;color:#e8cf9b;font-size:12.5px}
+  .warn b{color:#f2dfb4}
+  .legend{color:var(--fg3);font-size:12px;margin-top:10px;max-width:100ch}
+  .reject{display:flex;gap:10px;flex-wrap:wrap}
+  .reject div{flex:1;min-width:190px;background:var(--panel);border:1px solid var(--line);border-radius:9px;padding:11px 13px}
+  .reject .r{font-weight:600;font-size:12.5px;margin-bottom:3px}
+  .reject .w{font:11px/1.4 var(--mono);color:var(--fg3)}
+  @media(max-width:960px){.modes,.stack{grid-template-columns:repeat(2,1fr)}.steps{grid-template-columns:repeat(2,1fr)}}
+  @media(max-width:560px){.modes,.stack,.steps{grid-template-columns:1fr}.phase{flex-wrap:wrap}.phase .nm{width:auto}}
+</style></head><body><div class="wrap">
+
+<h1>KoArena</h1>
+<p class="sub">Tournament platform for programmers — CTF, hackathons, attack &amp; defense, algorithmic rounds, and language-driven game modes. One wizard, one scoring engine, eight game modes, any set of languages.</p>
+<div class="meta">
+  <span class="chip"><b>TanStack Start</b> 1.169.3</span>
+  <span class="chip"><b>Router</b> 1.170.45</span>
+  <span class="chip"><b>Query</b> 5.104.5</span>
+  <span class="chip"><b>Form</b> 1.33.5</span>
+  <span class="chip"><b>Table</b> 9.3.1</span>
+  <span class="chip"><b>Prisma</b> 7.10.1</span>
+  <span class="chip"><b>Postgres</b> managed · Neon/Supabase</span>
+  <span class="chip"><b>Clerk</b> tanstack-react-start 1.7.4</span>
+  <span class="chip"><b>Redis</b> classic TCP · <b>BullMQ</b> 6.3.19</span>
+  <span class="chip"><b>Hosting</b> Vercel + worker host</span>
+  <span class="chip"><b>Tailwind</b> 4.3.3</span>
+  <span class="chip"><b>shadcn/ui</b> base-nova</span>
+  <span class="chip"><b>ReUI</b> free</span>
+  <span class="chip"><b>Judge0</b> self-hosted</span>
+  <span class="chip"><b>Biome</b> 2.5.15 · <b>Vitest</b> 5 · <b>Playwright</b> 1.64</span>
+</div>
+
+<section>
+  <h2>Game modes</h2>
+  <div class="grid modes">
+    <div class="mode"><div class="top"><span class="nm">CTF</span><span class="tag">Jeopardy</span></div>
+      <div class="mech">Solve challenges, submit flags, points decay per solve, first blood.</div>
+      <div class="fx">max(min, base − decay × solves)</div>
+      <div class="needs"><span>no runner</span><span>no service</span></div></div>
+    <div class="mode"><div class="top"><span class="nm">Attack &amp; Defense</span><span class="tag">A/D</span></div>
+      <div class="mech">Run a vulnerable service, attack rivals, patch your own to survive.</div>
+      <div class="fx">capture +100 · patch +50 · downtime −</div>
+      <div class="needs"><span>no runner</span><span class="on">service host</span></div></div>
+    <div class="mode"><div class="top"><span class="nm">Hackathon</span><span class="tag">Buildathon</span></div>
+      <div class="mech">Ship a project, judges score it against a weighted rubric.</div>
+      <div class="fx">Σ(criterion × weight) → /1000</div>
+      <div class="needs"><span>no runner</span><span>no service</span></div></div>
+    <div class="mode"><div class="top"><span class="nm">ACM</span><span class="tag">Algorithmic</span></div>
+      <div class="mech">Solve problems against hidden test cases, wrong answers cost time.</div>
+      <div class="fx">solved ↓ · penalty 20 min ↑</div>
+      <div class="needs"><span class="on">code runner</span><span>no service</span></div></div>
+    <div class="mode"><div class="top"><span class="nm">Polyglot Battle</span><span class="tag">Language Arena</span></div>
+      <div class="mech">Same problem, pick your language, head-to-head with a difficulty handicap.</div>
+      <div class="fx">base ÷ language.weight</div>
+      <div class="needs"><span class="on">code runner</span><span>no service</span></div></div>
+    <div class="mode"><div class="top"><span class="nm">Golf Royale</span><span class="tag">Code Golf</span></div>
+      <div class="mech">Shortest correct program wins, bytes are the score.</div>
+      <div class="fx">max(0, 1000 − bytes)</div>
+      <div class="needs"><span class="on">code runner</span><span>no service</span></div></div>
+    <div class="mode"><div class="top"><span class="nm">Bug Hunt</span><span class="tag">Patch Race</span></div>
+      <div class="mech">Fix the seeded bug, fastest passing hidden tests wins.</div>
+      <div class="fx">base + speed bonus × minutes</div>
+      <div class="needs"><span class="on">code runner</span><span>no service</span></div></div>
+    <div class="mode"><div class="top"><span class="nm">Knockout</span><span class="tag">KOTH</span></div>
+      <div class="mech">Bracketed head-to-head duels, each side locks a language first.</div>
+      <div class="fx">points × rounds won</div>
+      <div class="needs"><span class="on">code runner</span><span class="on">service host</span></div></div>
+  </div>
+  <p class="legend">Language is a first-class entity — Judge0 id, editor mode, difficulty weight. It drives the editor, the runner, A/D service images, and cross-language fairness.</p>
+</section>
+
+<section>
+  <h2>Runtime architecture</h2>
+  <div class="arch">
+    <div class="row">
+      <div class="node hl"><div class="t">apps/web · Vercel</div><div class="d">TanStack Start<br>SSR · server fns · SSE</div></div>
+      <div class="arrow">→</div>
+      <div class="store"><div class="t">managed</div>
+        <div class="node"><div class="t">Postgres</div><div class="d">Neon / Supabase<br>pooled TCP · Prisma 7</div></div>
+        <div class="node" style="margin-top:9px"><div class="t">Redis</div><div class="d">ZSET board · pub/sub<br>BullMQ queues</div></div>
+      </div>
+      <div class="arrow">→</div>
+      <div class="store"><div class="t">worker host</div>
+        <div class="node"><div class="t">apps/judge</div><div class="d">BullMQ worker</div></div>
+        <div class="node" style="margin-top:9px"><div class="t">Judge0</div><div class="d">isolated runners<br>60+ languages</div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2>Write path — every score is an append-only event</h2>
+  <div class="steps">
+    <div class="step"><span class="n">01</span><div class="t">Action</div><div class="d">Player submits code or a flag.</div></div>
+    <div class="step"><span class="n">02</span><div class="t">Validate</div><div class="d">Zod schema, Clerk session + RBAC, rate limit, language allow-list.</div></div>
+    <div class="step"><span class="n">03</span><div class="t">Ledger</div><div class="d">Insert <b>ScoreEvent</b> with an idempotency key, under a Postgres advisory lock.</div></div>
+    <div class="step"><span class="n">04</span><div class="t">Snapshot</div><div class="d">Recompute totals, upsert <b>ScoreSnapshot</b> with rank.</div></div>
+    <div class="step"><span class="n">05</span><div class="t">Publish</div><div class="d">Update Redis ZSET, publish to the Redis channel.</div></div>
+    <div class="step"><span class="n">06</span><div class="t">Broadcast</div><div class="d">SSE emits <b>score:update</b>; clients invalidate the query.</div></div>
+  </div>
+  <div class="warn" style="margin-top:13px"><b>Invariant:</b> nothing but a <b>ScoreEvent</b> ever writes a score. Any leaderboard can be rebuilt from the event log, so cache loss, disputes and anti-cheat adjudication are all recoverable.</div>
+</section>
+
+<section>
+  <h2>Stack</h2>
+  <div class="stack">
+    <div class="col"><h3>Application</h3>
+      <div class="row2"><span class="k">Framework</span><span class="v">Start 1.169.3</span></div>
+      <div class="row2"><span class="k">Router</span><span class="v">1.170.45</span></div>
+      <div class="row2"><span class="k">Server state</span><span class="v">Query 5.104.5</span></div>
+      <div class="row2"><span class="k">Forms</span><span class="v">Form 1.33.5</span></div>
+      <div class="row2"><span class="k">Tables</span><span class="v">Table 9.3.1</span></div>
+      <div class="row2"><span class="k">Runtime</span><span class="v">Node 22.x</span></div>
+      <div class="row2"><span class="k">Monorepo</span><span class="v">pnpm + Turborepo</span></div>
+    </div>
+    <div class="col"><h3>Data &amp; infra</h3>
+      <div class="row2"><span class="k">ORM</span><span class="v">Prisma 7.10.1</span></div>
+      <div class="row2"><span class="k">Adapter</span><span class="v">@prisma/adapter-pg</span></div>
+      <div class="row2"><span class="k">Database</span><span class="v">Neon / Supabase</span></div>
+      <div class="row2"><span class="k">Cache</span><span class="v">Redis (classic TCP)</span></div>
+      <div class="row2"><span class="k">Queue</span><span class="v">BullMQ 6.3.19</span></div>
+      <div class="row2"><span class="k">Auth</span><span class="v">Clerk 1.7.4</span></div>
+      <div class="row2"><span class="k">Validation</span><span class="v">Zod 4.6.7</span></div>
+    </div>
+    <div class="col"><h3>Design system</h3>
+      <div class="row2"><span class="k">CSS</span><span class="v">Tailwind 4.3.3</span></div>
+      <div class="row2"><span class="k">Components</span><span class="v">shadcn/ui</span></div>
+      <div class="row2"><span class="k">Base</span><span class="v">Base UI · base-nova</span></div>
+      <div class="row2"><span class="k">Registry</span><span class="v">ReUI (free)</span></div>
+      <div class="row2"><span class="k">Editor</span><span class="v">Monaco 0.57</span></div>
+      <div class="row2"><span class="k">Code display</span><span class="v">ReUI code-block</span></div>
+      <div class="row2"><span class="k">Icons</span><span class="v">lucide-react</span></div>
+    </div>
+    <div class="col"><h3>Quality &amp; ops</h3>
+      <div class="row2"><span class="k">Lint + format</span><span class="v">Biome 2.5.15</span></div>
+      <div class="row2"><span class="k">Unit</span><span class="v">Vitest 5.0.5</span></div>
+      <div class="row2"><span class="k">E2E</span><span class="v">Playwright 1.64</span></div>
+      <div class="row2"><span class="k">Local infra</span><span class="v">Docker Compose</span></div>
+      <div class="row2"><span class="k">Observability</span><span class="v">Sentry + OTel</span></div>
+      <div class="row2"><span class="k">Email / storage</span><span class="v">Resend · S3/R2</span></div>
+      <div class="row2"><span class="k">Worker host</span><span class="v">Fly.io / VPS</span></div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2>Delivery roadmap — milestone 1 is CTF + ACM + Hackathon</h2>
+  <div class="phase"><span class="p">P0</span><span class="nm">Foundations</span><span class="ex">Monorepo, Start 1.0, Tailwind v4, shadcn + ReUI, Prisma 7 + managed Postgres, Redis, Docker Compose, CI, Clerk init.</span></div>
+  <div class="phase"><span class="p">P1</span><span class="nm">Identity &amp; org</span><span class="ex">Clerk middleware, roles, teams, tournament CRUD, organizer wizard.</span></div>
+  <div class="phase"><span class="p">P2</span><span class="nm">CTF vertical slice</span><span class="ex">Challenges, encrypted flags, dynamic scoring, live scoreboard over SSE.</span></div>
+  <div class="phase"><span class="p">P3</span><span class="nm">Code runner</span><span class="ex">Monaco, Judge0, BullMQ worker on the worker host, ACM mode, test cases, penalties.</span></div>
+  <div class="phase"><span class="p">P4</span><span class="nm">Hackathon</span><span class="ex">Project submissions, rubrics, judge assignment, judge queue, awards.</span></div>
+  <div class="phase"><span class="p">P5</span><span class="nm">Security &amp; scale</span><span class="ex">Plagiarism detection, audit log, moderation, rate limits, load test to 500 players.</span></div>
+  <div class="phase"><span class="p">P6</span><span class="nm">Attack &amp; Defense</span><span class="ex">Service deployment, bots, attack capture, patch scoring, kill feed.</span></div>
+  <div class="phase"><span class="p">P7</span><span class="nm">Language modes</span><span class="ex">Polyglot Battle, Golf Royale, Bug Hunt, Knockout brackets, language roulette.</span></div>
+</section>
+
+<section>
+  <h2>Deliberate rejections</h2>
+  <div class="reject">
+    <div><div class="r">PartyKit</div><div class="w">platform shut down, deploys stopped 2026-10-16</div></div>
+    <div><div class="r">Prisma 8</div><div class="w">still 8.0.0-rc.23 — pin 7.10.1</div></div>
+    <div><div class="r">Prisma Accelerate</div><div class="w">retires 2026-12-01 — pooled TCP instead</div></div>
+    <div><div class="r">Socket.IO in v1</div><div class="w">Vercel pins + closes connections — SSE is simpler</div></div>
+  </div>
+</section>
+
+</div></body></html>
