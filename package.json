@@ -30,5 +30,12 @@
     "@biomejs/biome": "2.5.15",
     "turbo": "2.11.10",
     "typescript": "7.0.2"
-  }
+  },
+  "license": "AGPL-3.0-or-later",
+  "description": "Tournament platform for programmers \u2014 CTF, hackathons, attack & defense, algorithmic rounds, and language-driven game modes.",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/koamishin/koarena.git"
+  },
+  "homepage": "https://github.com/koamishin/koarena"
 }

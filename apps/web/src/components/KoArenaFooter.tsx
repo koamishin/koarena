@@ -1,5 +1,8 @@
 import { Link } from '@tanstack/react-router'
 
+/** Where the source lives. The AGPL asks a network-served app to say so. */
+const SOURCE_URL = 'https://github.com/koamishin/koarena'
+
 export function KoArenaFooter() {
   return (
     <footer className="border-t border-border">
@@ -18,6 +21,14 @@ export function KoArenaFooter() {
           >
             Leaderboard
           </Link>
+          <a
+            href={SOURCE_URL}
+            target="_blank"
+            rel="noreferrer noopener"
+            className="transition-colors hover:text-foreground"
+          >
+            Source
+          </a>
         </nav>
       </div>
     </footer>
