@@ -14,6 +14,22 @@ import { markSubmissionFailed, reapStaleSubmissions } from './reaper'
  * submission submitted in one place is judged in the other.
  */
 
+// A worker pointed at the wrong database fails every job with "submission
+// does not exist", which looks exactly like a broken app. Say it plainly
+// instead.
+const missing = ['DATABASE_URL', 'REDIS_URL'].filter(
+  (name) => !process.env[name],
+)
+
+if (missing.length > 0) {
+  console.error(
+    `[judge] ${missing.join(' and ')} ${missing.length === 1 ? 'is' : 'are'} not set.\n` +
+      '        Copy apps/judge/.env.example to apps/judge/.env and point it at the\n' +
+      '        same database and Redis as apps/web/.env.',
+  )
+  process.exit(1)
+}
+
 const concurrency = Number(process.env.JUDGE_CONCURRENCY ?? 4)
 
 const worker = new Worker<JudgeJob>(
