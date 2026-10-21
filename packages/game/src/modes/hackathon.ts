@@ -42,7 +42,7 @@ export const hackathonMode: GameMode<typeof hackathonConfigSchema> = {
   label: 'Hackathon',
   schema: hackathonConfigSchema,
   defaultConfig: hackathonDefaultConfig,
-  tieBreakers: ['score', 'lastEventAt', 'teamId'],
+  tieBreakers: ['score', 'lastEventAt', 'id'],
 
   deriveEvents({ config, events }) {
     const parsed = hackathonConfigSchema.parse(config)

@@ -31,7 +31,7 @@ export const knockoutMode: GameMode<typeof knockoutConfigSchema> = {
   label: 'Knockout',
   schema: knockoutConfigSchema,
   defaultConfig: knockoutDefaultConfig,
-  tieBreakers: ['score', 'solves', 'lastEventAt', 'teamId'],
+  tieBreakers: ['score', 'solves', 'lastEventAt', 'id'],
 
   deriveEvents({ config, events }) {
     const parsed = knockoutConfigSchema.parse(config)

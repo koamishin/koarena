@@ -14,9 +14,17 @@ export const hasDatabase = Boolean(process.env.DATABASE_URL)
 
 let counter = 0
 
+/**
+ * A suffix unique across parallel test workers.
+ *
+ * The process id and a random component matter: two workers can create a row
+ * in the same millisecond, and a shared counter would not be enough to keep
+ * their email addresses apart.
+ */
 export function uniqueSuffix(): string {
   counter += 1
-  return `${Date.now().toString(36)}${counter}`
+  const random = Math.random().toString(36).slice(2, 8)
+  return `${Date.now().toString(36)}${process.pid.toString(36)}${counter.toString(36)}${random}`
 }
 
 /** Create a throwaway user row (a Clerk user mirrored into KoArena). */

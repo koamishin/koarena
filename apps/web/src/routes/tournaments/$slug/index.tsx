@@ -1,5 +1,5 @@
 import { Show } from '@clerk/tanstack-react-start'
-import { createFileRoute, useRouter } from '@tanstack/react-router'
+import { createFileRoute, Link, useRouter } from '@tanstack/react-router'
 import { useState } from 'react'
 import { toast } from 'sonner'
 
@@ -219,10 +219,25 @@ function TournamentDetailPage() {
                         Choose a team
                       </Button>
                     ) : teams.length === 0 ? (
-                      <p className="text-sm text-muted-foreground">
-                        You are not on a team yet. Create one from your
-                        dashboard.
-                      </p>
+                      <div className="flex flex-wrap items-center gap-3">
+                        <p className="text-sm text-muted-foreground">
+                          You are not on a team yet.
+                        </p>
+                        <Button
+                          onClick={join}
+                          disabled={busy || !open}
+                          variant="outline"
+                        >
+                          Register solo
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          render={<Link to="/teams" />}
+                        >
+                          Create a team
+                        </Button>
+                      </div>
                     ) : (
                       <div className="flex items-center gap-2">
                         <Select

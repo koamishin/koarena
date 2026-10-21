@@ -1,3 +1,5 @@
+"use client"
+
 import * as React from "react"
 import type { FilterDraftAction } from "@/components/reui/filters/filters-draft"
 import type { FilterPathCollapse } from "@/components/reui/filters/filters-lib"

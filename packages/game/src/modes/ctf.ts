@@ -33,10 +33,10 @@ export const ctfMode: GameMode<typeof ctfConfigSchema> = {
   label: 'Capture The Flag',
   schema: ctfConfigSchema,
   defaultConfig: ctfDefaultConfig,
-  tieBreakers: ['score', 'solves', 'lastEventAt', 'teamId'],
+  tieBreakers: ['score', 'solves', 'lastEventAt', 'id'],
 
   deriveEvents({ config, events }) {
-    const parsed = ctfConfigSchema.parse(config)
+    const parsed = ctfConfigSchema.parse(config ?? {})
     const ordered = sortEvents(events)
 
     /** challengeId -> how many teams already solved it. */
@@ -49,21 +49,29 @@ export const ctfMode: GameMode<typeof ctfConfigSchema> = {
       const challengeId = String(event.payload?.challengeId ?? '')
       const solvedBefore = solveCounts.get(challengeId) ?? 0
 
-      const base = Math.max(
-        parsed.minPoints,
-        parsed.basePoints - parsed.decayPerSolve * solvedBefore,
+      const award = ctfSolveAward(
+        config,
+        {
+          initialPoints: parsed.basePoints,
+          minPoints: parsed.minPoints,
+          decayPerSolve: parsed.decayPerSolve,
+        },
+        solvedBefore,
+        solvedBefore === 0,
       )
-      const isFirstBlood = solvedBefore === 0
-      const bonus = isFirstBlood ? parsed.firstBloodBonus : 0
 
       drafts.push({
         type: 'CHALLENGE_SOLVED',
-        points: base,
+        points: award.points,
         weight: 1,
-        delta: base + bonus,
+        delta: award.delta,
         refType: 'challenge',
         refId: challengeId,
-        metadata: { solvedBefore, isFirstBlood },
+        metadata: {
+          solvedBefore,
+          isFirstBlood: solvedBefore === 0,
+          bonus: award.bonus,
+        },
       })
 
       solveCounts.set(challengeId, solvedBefore + 1)
@@ -77,12 +85,63 @@ export const ctfMode: GameMode<typeof ctfConfigSchema> = {
   },
 }
 
+/**
+ * The points a solve is worth right now.
+ *
+ * The same formula the derivation uses, exposed so the UI can show "currently
+ * worth N" without duplicating the rule.
+ */
+export function ctfPointsAt(config: unknown, solveCount: number): number {
+  const parsed = ctfConfigSchema.parse(config ?? {})
+  return Math.max(
+    parsed.minPoints,
+    parsed.basePoints - parsed.decayPerSolve * solveCount,
+  )
+}
+
+/**
+ * The points rule a challenge carries.
+ *
+ * A challenge's own values win over the mode's defaults — an organizer can
+ * make one challenge worth more than another.
+ */
+export interface CtfPointsRule {
+  initialPoints: number
+  minPoints: number
+  decayPerSolve: number
+}
+
+/**
+ * What one solve is worth, given how many teams solved it before.
+ *
+ * This is the single implementation of the rule: `deriveEvents` calls it, and
+ * the live solve path calls it too, so the board, the card and the award can
+ * never disagree.
+ *
+ * The points come from the challenge's own rule; the mode config only supplies
+ * the first-blood bonus.
+ */
+export function ctfSolveAward(
+  config: unknown,
+  rule: CtfPointsRule,
+  solveCountBefore: number,
+  isFirstBlood: boolean,
+): { points: number; bonus: number; delta: number } {
+  const parsed = ctfConfigSchema.parse(config ?? {})
+  const points = Math.max(
+    rule.minPoints,
+    rule.initialPoints - rule.decayPerSolve * solveCountBefore,
+  )
+  const bonus = isFirstBlood ? parsed.firstBloodBonus : 0
+  return { points, bonus, delta: points + bonus }
+}
+
 /** Recompute a team's CTF standing from its score events. */
 export function ctfStanding(
-  teamId: string,
+  id: string,
   score: number,
   solves: number,
   lastEventAt: number | null,
 ): Standing {
-  return { rank: 0, teamId, score, solves, penalty: 0, lastEventAt }
+  return { rank: 0, id, score, solves, penalty: 0, lastEventAt }
 }

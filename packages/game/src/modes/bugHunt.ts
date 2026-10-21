@@ -25,7 +25,7 @@ export const bugHuntMode: GameMode<typeof bugHuntConfigSchema> = {
   label: 'Bug Hunt',
   schema: bugHuntConfigSchema,
   defaultConfig: bugHuntDefaultConfig,
-  tieBreakers: ['score', 'lastEventAt', 'teamId'],
+  tieBreakers: ['score', 'lastEventAt', 'id'],
 
   deriveEvents({ config, events }) {
     const parsed = bugHuntConfigSchema.parse(config)

@@ -3,7 +3,7 @@ import type { Standing, TieBreaker } from './types'
 /**
  * Rank teams with a deterministic, total ordering.
  *
- * Every mode ends with `teamId` as the final tie-breaker so two teams with
+ * Every mode ends with `id` as the final tie-breaker so two participants with
  * identical numbers always come out in the same order — otherwise the
  * leaderboard would flicker between renders.
  */
@@ -38,8 +38,8 @@ function compareBy(a: Standing, b: Standing, breaker: TieBreaker): number {
       const right = b.lastEventAt ?? Number.POSITIVE_INFINITY
       return left - right
     }
-    case 'teamId':
-      return a.teamId.localeCompare(b.teamId)
+    case 'id':
+      return a.id.localeCompare(b.id)
     default: {
       const exhaustive: never = breaker
       throw new Error(`Unknown tie-breaker: ${String(exhaustive)}`)

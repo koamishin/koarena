@@ -27,7 +27,7 @@ export const attackDefenseMode: GameMode<typeof attackDefenseConfigSchema> = {
   label: 'Attack & Defense',
   schema: attackDefenseConfigSchema,
   defaultConfig: attackDefenseDefaultConfig,
-  tieBreakers: ['score', 'solves', 'lastEventAt', 'teamId'],
+  tieBreakers: ['score', 'solves', 'lastEventAt', 'id'],
 
   deriveEvents({ config, events }) {
     const parsed = attackDefenseConfigSchema.parse(config)

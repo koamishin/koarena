@@ -491,6 +491,32 @@ the critical path; phases 6–7 add modes on top of a proven engine.
 | Local infra | `infra/docker-compose.yml` — Postgres 17, Redis 7, MinIO (optional profile) |
 | Tooling | Biome 2.5, Vitest 5, GitHub Actions CI |
 
+### Phase 2 — what was built
+
+| Piece | Where |
+| --- | --- |
+| Flag encryption | `packages/crypto` — AES-256-GCM, value + IV + auth tag in separate columns, timing-safe compare, only the hash of an attempt is stored |
+| The live bus | `packages/realtime` — one event contract, one Redis subscriber per instance, fan-out to every stream |
+| The score ledger | `features/scoring` — append-only `ScoreEvent`, per-team advisory lock, snapshot rebuilt from the log, ranked by the engine |
+| Challenges | `features/challenges` — categories, hints, files, publish/draft, the board with the ReUI `filters` component |
+| The solve path | `features/flags` — decrypt, compare, award, record, publish |
+| Live channel | `/api/live/$slug` (SSE) and `useLiveEvents` — the browser reconnects on its own |
+| Pages | challenge board, challenge detail with the flag form, live scoreboard, the organizer's challenge manager |
+| Demo data | `pnpm --filter @koarena/db seed:demo` — a four-challenge CTF with encrypted flags |
+
+**The points rule belongs to the challenge.** A challenge carries its own
+`initialPoints` / `minPoints` / `decayPerSolve`; the mode config only supplies
+the first-blood bonus. The board, the card and the award all read the same rule
+from `@koarena/game`, so they cannot disagree.
+
+**A participant is a team *or* a solo player.** A score snapshot is keyed on the
+team id for a team and on the player id for a solo participant — two solo
+players are two standings, not one shared row.
+
+**Flags are stored encrypted and never leave the server.** The attempt hash is
+what gets recorded; a wrong attempt is a row with `correct = false` and no
+usable flag in it.
+
 ### Phase 1 — what was built
 
 | Piece | Where |
@@ -519,6 +545,22 @@ return type collapses the inferred type across the network boundary.
 needs `nativeButton={false}`); a `Date` reached the grid where a string was
 expected; and `/organizer/new` was gated behind the organizer role that only
 creating a tournament grants.
+
+### Bugs the live browser test caught
+
+These only showed up in a real browser driving the app, not in the unit tests:
+
+- The client asked for `/api/live/<id>` while the route was `/api/live/$slug`,
+  so every `EventSource` got a **404** and the board never moved. The server was
+  publishing correctly the whole time.
+- A subscriber that had not finished its Redis `psubscribe` **silently missed**
+  the first events published after it attached. The subscription is now awaited.
+- The solve awarded the tournament's points instead of the challenge's, so the
+  card said "worth 450" and the award paid 525.
+- `/organizer/new` was gated behind the organizer role that creating a
+  tournament grants — a player could not start one.
+- The tournament page forced a player to have a team, although a solo
+  registration is a first-class option in the schema.
 
 ---
 

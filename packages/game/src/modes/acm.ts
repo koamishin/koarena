@@ -31,7 +31,7 @@ export const acmMode: GameMode<typeof acmConfigSchema> = {
   label: 'Algorithmic Contest',
   schema: acmConfigSchema,
   defaultConfig: acmDefaultConfig,
-  tieBreakers: ['solves', 'penalty', 'lastEventAt', 'teamId'],
+  tieBreakers: ['solves', 'penalty', 'lastEventAt', 'id'],
 
   deriveEvents({ config, events }) {
     const parsed = acmConfigSchema.parse(config)

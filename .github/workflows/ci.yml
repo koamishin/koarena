@@ -13,6 +13,9 @@ env:
   DATABASE_URL: postgresql://postgres:postgres@localhost:5432/koarena
   DIRECT_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/koarena
   REDIS_URL: redis://localhost:6379
+  # A throwaway key for the test suite: the flags the tests create are never
+  # read outside the database.
+  FLAG_ENCRYPTION_KEY: CQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQk=
 
 jobs:
   verify:

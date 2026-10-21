@@ -1,5 +1,3 @@
-"use client"
-
 import * as React from "react"
 import { useCascaderState } from "@/components/reui/cascader/cascader-context"
 import {

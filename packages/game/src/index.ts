@@ -131,6 +131,7 @@ export function listModes(): Array<{
   }))
 }
 
+export { ctfPointsAt, ctfSolveAward } from './modes/ctf'
 export * from './types'
 export {
   acmConfigSchema,

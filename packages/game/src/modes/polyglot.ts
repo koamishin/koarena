@@ -34,7 +34,7 @@ export const polyglotMode: GameMode<typeof polyglotConfigSchema> = {
   label: 'Polyglot Battle',
   schema: polyglotConfigSchema,
   defaultConfig: polyglotDefaultConfig,
-  tieBreakers: ['score', 'lastEventAt', 'teamId'],
+  tieBreakers: ['score', 'lastEventAt', 'id'],
 
   deriveEvents({ config, events }) {
     const parsed = polyglotConfigSchema.parse(config)

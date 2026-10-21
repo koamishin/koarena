@@ -1,5 +1,3 @@
-"use client"
-
 import * as React from "react"
 import { FiltersAdvanced } from "@/components/reui/filters/filters-advanced"
 import { FiltersBuilder } from "@/components/reui/filters/filters-builder"

@@ -508,3 +508,22 @@ export async function listTeamsForRegistration(
     role: membership.role,
   }))
 }
+
+/**
+ * Who the viewer is playing as in this tournament.
+ *
+ * A player may be solo or part of a team; the team's score is what counts.
+ */
+export async function resolveParticipant(
+  tournamentId: string,
+  userId: string,
+): Promise<{ id: string; teamId: string | null }> {
+  const prisma = getPrisma()
+
+  const participation = await prisma.tournamentParticipant.findUnique({
+    where: { tournamentId_userId: { tournamentId, userId } },
+    select: { teamId: true },
+  })
+
+  return { id: userId, teamId: participation?.teamId ?? null }
+}

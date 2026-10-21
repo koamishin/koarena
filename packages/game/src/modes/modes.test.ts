@@ -230,7 +230,7 @@ describe('ranking', () => {
     const standings = rank('ctf', [
       {
         rank: 0,
-        teamId: 'zebra',
+        id: 'zebra',
         score: 100,
         solves: 1,
         penalty: 0,
@@ -238,7 +238,7 @@ describe('ranking', () => {
       },
       {
         rank: 0,
-        teamId: 'alpha',
+        id: 'alpha',
         score: 100,
         solves: 1,
         penalty: 0,
@@ -246,6 +246,6 @@ describe('ranking', () => {
       },
     ])
 
-    expect(standings.map((s) => s.teamId)).toEqual(['alpha', 'zebra'])
+    expect(standings.map((s) => s.id)).toEqual(['alpha', 'zebra'])
   })
 })

@@ -24,9 +24,17 @@ export default defineConfig(({ mode }) => {
       tailwindcss(),
       tanstackStart({
         // Fail the build when server-only code (the Prisma client, Clerk's
-        // backend SDK) would end up in the browser bundle.
+        // backend SDK, Redis) would end up in the browser bundle.
         importProtection: {
           behavior: { dev: 'mock', build: 'error' },
+          client: {
+            specifiers: [
+              '@tanstack/react-start/server',
+              '@koarena/db',
+              '@koarena/crypto',
+              '@koarena/realtime',
+            ],
+          },
         },
       }),
       viteReact(),

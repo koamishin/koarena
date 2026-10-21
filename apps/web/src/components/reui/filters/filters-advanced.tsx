@@ -1,3 +1,5 @@
+"use client"
+
 import * as React from "react"
 import { FilterFieldPicker } from "@/components/reui/filters/filters-builder"
 import {

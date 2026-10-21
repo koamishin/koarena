@@ -64,7 +64,11 @@ export interface GameEventInput {
 /** One row of a leaderboard. */
 export interface Standing {
   rank: number
-  teamId: string
+  /**
+   * The participant's stable identity: a team id, or a user id when the
+   * participant is playing solo. Two solo players are two standings.
+   */
+  id: string
   score: number
   solves: number
   penalty: number
@@ -72,12 +76,7 @@ export interface Standing {
   lastEventAt: number | null
 }
 
-export type TieBreaker =
-  | 'score'
-  | 'solves'
-  | 'penalty'
-  | 'lastEventAt'
-  | 'teamId'
+export type TieBreaker = 'score' | 'solves' | 'penalty' | 'lastEventAt' | 'id'
 
 export interface DeriveInput {
   /** The mode's validated config. */

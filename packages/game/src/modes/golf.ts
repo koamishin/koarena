@@ -28,7 +28,7 @@ export const golfMode: GameMode<typeof golfConfigSchema> = {
   label: 'Golf Royale',
   schema: golfConfigSchema,
   defaultConfig: golfDefaultConfig,
-  tieBreakers: ['score', 'lastEventAt', 'teamId'],
+  tieBreakers: ['score', 'lastEventAt', 'id'],
 
   deriveEvents({ config, events }) {
     const parsed = golfConfigSchema.parse(config)

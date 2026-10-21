@@ -67,7 +67,7 @@ describe('acm mode', () => {
     const standings = rank('acm', [
       {
         rank: 0,
-        teamId: 'slow',
+        id: 'slow',
         score: 1,
         solves: 1,
         penalty: 40,
@@ -75,7 +75,7 @@ describe('acm mode', () => {
       },
       {
         rank: 0,
-        teamId: 'fast',
+        id: 'fast',
         score: 1,
         solves: 1,
         penalty: 20,
@@ -83,7 +83,7 @@ describe('acm mode', () => {
       },
       {
         rank: 0,
-        teamId: 'best',
+        id: 'best',
         score: 3,
         solves: 3,
         penalty: 60,
@@ -91,7 +91,7 @@ describe('acm mode', () => {
       },
     ])
 
-    expect(standings.map((s) => s.teamId)).toEqual(['best', 'fast', 'slow'])
+    expect(standings.map((s) => s.id)).toEqual(['best', 'fast', 'slow'])
     expect(standings.map((s) => s.rank)).toEqual([1, 2, 3])
   })
 })
