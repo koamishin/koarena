@@ -1,0 +1,27 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "include": ["src/**/*.ts", "src/**/*.tsx", "*.ts"],
+  "exclude": [
+    "node_modules",
+    "dist",
+    ".output",
+    ".tanstack",
+    "src/components/examples"
+  ],
+  "compilerOptions": {
+    "types": ["vite/client"],
+    "paths": {
+      "#/*": ["./src/*"],
+      "@/*": ["./src/*"],
+      "@koarena/db": ["../../packages/db/src/index.ts"],
+      "@koarena/db/*": ["../../packages/db/src/*"],
+      "@koarena/game": ["../../packages/game/src/index.ts"]
+    },
+    // The shadcn/ReUI component sources are vendored and are not written
+    // against these two flags. Biome covers unused imports for this package
+    // and excludes the vendored folders there.
+    "noUncheckedIndexedAccess": false,
+    "noUnusedLocals": false,
+    "noUnusedParameters": false
+  }
+}

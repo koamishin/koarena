@@ -1,0 +1,1248 @@
+// KoArena — draft Prisma schema (Prisma 7, PostgreSQL)
+// Validate with:  prisma validate
+// NOTE: in Prisma 7 the datasource `url` is NOT declared here. It lives in
+// packages/db/prisma.config.ts  ->  datasource.url = env("DATABASE_URL").
+
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ---------------------------------------------------------------------------
+// Enums
+// ---------------------------------------------------------------------------
+
+// ---------------------------------------------------------------------------
+// Identity — Clerk is the source of truth for authentication.
+// KoArena keeps a mirror row per Clerk user so it can be joined in queries.
+// `id` IS the Clerk user id (`user_...`); there is no local session,
+// account or password table.
+// ---------------------------------------------------------------------------
+
+// ---------------------------------------------------------------------------
+// Platform: moderation & audit
+// ---------------------------------------------------------------------------
+
+// ---------------------------------------------------------------------------
+// Organizations (a series / league that owns tournaments)
+// ---------------------------------------------------------------------------
+
+// ---------------------------------------------------------------------------
+// Teams (reusable across tournaments)
+// ---------------------------------------------------------------------------
+
+// ---------------------------------------------------------------------------
+// Languages
+// ---------------------------------------------------------------------------
+
+// ---------------------------------------------------------------------------
+// Tournament
+// ---------------------------------------------------------------------------
+
+// ---------------------------------------------------------------------------
+// CTF mode
+// ---------------------------------------------------------------------------
+
+// ---------------------------------------------------------------------------
+// ACM / algorithmic mode
+// ---------------------------------------------------------------------------
+
+// ---------------------------------------------------------------------------
+// Hackathon mode
+// ---------------------------------------------------------------------------
+
+// ---------------------------------------------------------------------------
+// Attack & Defense mode
+// ---------------------------------------------------------------------------
+
+// ---------------------------------------------------------------------------
+// Knockout / brackets
+// ---------------------------------------------------------------------------
+
+// ---------------------------------------------------------------------------
+// Flags
+// ---------------------------------------------------------------------------
+
+// ---------------------------------------------------------------------------
+// Submissions & judging
+// ---------------------------------------------------------------------------
+
+// ---------------------------------------------------------------------------
+// Scoring: append-only ledger + materialised snapshot
+// ---------------------------------------------------------------------------
+
+// ---------------------------------------------------------------------------
+// Comms, assets, prizes, event log
+// ---------------------------------------------------------------------------
+
+enum UserRole {
+  PLAYER
+  ORGANIZER
+  JUDGE
+  ADMIN
+}
+
+enum GameMode {
+  CTF
+  ATTACK_DEFENSE
+  HACKATHON
+  ACM
+  POLYGLOT_BATTLE
+  CODE_GOLF
+  BUG_HUNT
+  KNOCKOUT
+}
+
+enum TournamentStatus {
+  DRAFT
+  SCHEDULED
+  REGISTRATION
+  LIVE
+  PAUSED
+  FINISHED
+  CANCELLED
+}
+
+enum TournamentVisibility {
+  PUBLIC
+  UNLISTED
+  PRIVATE
+}
+
+enum LanguageCategory {
+  SYSTEM
+  PROGRAMMING
+  MARKUP
+  QUERY
+}
+
+enum ChallengeKind {
+  STATIC
+  DYNAMIC
+  SERVICE
+}
+
+enum ChallengeState {
+  DRAFT
+  PUBLISHED
+  LOCKED
+  ARCHIVED
+}
+
+enum FlagFormat {
+  STATIC
+  REGEX
+  CASE_INSENSITIVE
+}
+
+enum SubmissionStatus {
+  QUEUED
+  COMPILING
+  RUNNING
+  JUDGING
+  ACCEPTED
+  WRONG_ANSWER
+  TIME_LIMIT_EXCEEDED
+  MEMORY_LIMIT_EXCEEDED
+  RUNTIME_ERROR
+  COMPILE_ERROR
+  TOO_MANY_SUBMISSIONS
+  ERROR
+}
+
+enum JudgeRunStatus {
+  QUEUED
+  SENT
+  RUNNING
+  FINISHED
+  FAILED
+  TIMEOUT
+}
+
+enum ScoreEventType {
+  FLAG_CAPTURE
+  CHALLENGE_SOLVED
+  PROBLEM_SOLVED
+  SUBMISSION_ACCEPTED
+  SUBMISSION_PENALTY
+  HACKATHON_SCORED
+  ATTACK_CAPTURED
+  SERVICE_PATCHED
+  SERVICE_DOWN
+  SERVICE_KILLED
+  BRACKET_WIN
+  BRACKET_LOSS
+  BRACKET_ADVANCE
+  BONUS
+  PENALTY
+  MANUAL_ADJUSTMENT
+}
+
+enum ServiceStatus {
+  PROVISIONING
+  RUNNING
+  DEGRADED
+  DOWN
+  KILLED
+  RETIRED
+}
+
+enum AttackStatus {
+  QUEUED
+  RUNNING
+  CAPTURED
+  FAILED
+  TIMEOUT
+}
+
+enum JudgingAssignmentStatus {
+  ASSIGNED
+  IN_PROGRESS
+  SUBMITTED
+}
+
+enum ProjectStatus {
+  DRAFT
+  SUBMITTED
+  UNDER_REVIEW
+  SCORED
+  ACCEPTED
+}
+
+enum BracketType {
+  SINGLE_ELIMINATION
+  DOUBLE_ELIMINATION
+  ROUND_ROBIN
+}
+
+enum MatchStatus {
+  PENDING
+  SCHEDULED
+  LIVE
+  FINISHED
+}
+
+enum TeamRole {
+  LEADER
+  MEMBER
+}
+
+enum OrgRole {
+  OWNER
+  ADMIN
+  MEMBER
+}
+
+enum ReportStatus {
+  OPEN
+  REVIEWING
+  RESOLVED
+  DISMISSED
+}
+
+enum ReportTargetType {
+  USER
+  TEAM
+  SUBMISSION
+  CHALLENGE
+  MESSAGE
+}
+
+enum AssetKind {
+  CHALLENGE_FILE
+  PROJECT_ARCHIVE
+  AVATAR
+  BANNER
+  WRITEUP_IMAGE
+}
+
+enum AssetVisibility {
+  PRIVATE
+  TEAM
+  PUBLIC
+}
+
+enum NotificationType {
+  TOURNAMENT_START
+  TOURNAMENT_END
+  TEAM_INVITE
+  CHALLENGE_UNLOCK
+  JUDGE_ASSIGNED
+  AWARD
+  MODERATION
+  SYSTEM
+}
+
+model User {
+  id        String   @id // Clerk user id, e.g. "user_2abc..." @map("id")
+  email     String   @unique @map("email")
+  firstName String?  @map("first_name")
+  lastName  String?  @map("last_name")
+  handle    String?  @unique @map("handle")
+  imageUrl  String?  @map("image_url")
+  role      UserRole @default(PLAYER) // mirrored from Clerk publicMetadata @map("role")
+  banned    Boolean  @default(false) @map("banned")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  teams               TeamMember[]
+  teamInvitesSent     TeamInvite[]            @relation("InviteSender")
+  teamInvitesReceived TeamInvite[]            @relation("InviteReceiver")
+  orgs                OrganizationMember[]
+  createdTournaments  Tournament[]            @relation("TournamentCreator")
+  participations      TournamentParticipant[]
+  authoredChallenges  Challenge[]             @relation("ChallengeAuthor")
+  createdProblems     Problem[]               @relation("ProblemAuthor")
+  submissions         Submission[]
+  judgeAssignments    JudgingAssignment[]
+  scores              ScoreEvent[]
+  snapshots           ScoreSnapshot[]
+  announcements       Announcement[]
+  chatMessages        ChatMessage[]
+  notifications       Notification[]
+  assets              Asset[]
+  reportsFiled        Report[]                @relation("ReportReporter")
+  auditLogs           AuditLog[]
+  bans                Ban[]                   @relation("BanActor")
+  bannedBy            Ban[]                   @relation("BanTarget")
+  gameEvents          GameEvent[]
+  hintsCreated        ChallengeHint[]
+  flagSubmissions     FlagSubmission[]
+
+  @@index([role])
+  @@map("users")
+}
+
+model Ban {
+  id        String    @id @default(cuid(2)) @map("id")
+  userId    String    @map("user_id")
+  reason    String    @map("reason")
+  expiresAt DateTime? @map("expires_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+  user      User      @relation("BanTarget", fields: [userId], references: [id], onDelete: Cascade)
+  actorId   String    @map("actor_id")
+  actor     User      @relation("BanActor", fields: [actorId], references: [id])
+
+  @@index([userId])
+  @@map("bans")
+}
+
+model AuditLog {
+  id         String   @id @default(cuid(2)) @map("id")
+  actorId    String?  @map("actor_id")
+  action     String   @map("action")
+  entityType String   @map("entity_type")
+  entityId   String   @map("entity_id")
+  metadata   Json?    @map("metadata")
+  ipAddress  String?  @map("ip_address")
+  createdAt  DateTime @default(now()) @map("created_at")
+  actor      User?    @relation(fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([entityType, entityId])
+  @@index([actorId, createdAt])
+  @@map("audit_logs")
+}
+
+model Report {
+  id           String           @id @default(cuid(2)) @map("id")
+  targetType   ReportTargetType @map("target_type")
+  targetId     String           @map("target_id")
+  reason       String           @map("reason")
+  details      String?          @map("details")
+  status       ReportStatus     @default(OPEN) @map("status")
+  createdAt    DateTime         @default(now()) @map("created_at")
+  resolvedAt   DateTime?        @map("resolved_at")
+  reporterId   String           @map("reporter_id")
+  tournamentId String?          @map("tournament_id")
+  reporter     User             @relation("ReportReporter", fields: [reporterId], references: [id], onDelete: Cascade)
+  tournament   Tournament?      @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+
+  @@index([status])
+  @@index([targetType, targetId])
+  @@index([tournamentId])
+  @@map("reports")
+}
+
+model Organization {
+  id          String   @id @default(cuid(2)) @map("id")
+  clerkOrgId  String?  @unique // optional link to a Clerk Organization (clubs/leagues) @map("clerk_org_id")
+  name        String   @map("name")
+  slug        String   @unique @map("slug")
+  description String?  @map("description")
+  logoUrl     String?  @map("logo_url")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  members     OrganizationMember[]
+  tournaments Tournament[]
+
+  @@map("organizations")
+}
+
+model OrganizationMember {
+  id             String       @id @default(cuid(2)) @map("id")
+  organizationId String       @map("organization_id")
+  userId         String       @map("user_id")
+  role           OrgRole      @default(MEMBER) @map("role")
+  createdAt      DateTime     @default(now()) @map("created_at")
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, userId])
+  @@index([userId])
+  @@map("organization_members")
+}
+
+model Team {
+  id          String   @id @default(cuid(2)) @map("id")
+  name        String   @map("name")
+  slug        String   @map("slug")
+  description String?  @map("description")
+  logoUrl     String?  @map("logo_url")
+  ownerId     String   @map("owner_id")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  members         TeamMember[]
+  invites         TeamInvite[]
+  participants    TournamentParticipant[]
+  tournamentTeams TournamentTeam[]
+  submissions     Submission[]
+  solves          ChallengeSolve[]
+  scoreEvents     ScoreEvent[]
+  snapshots       ScoreSnapshot[]
+  flagSubmissions FlagSubmission[]
+  attacks         Attack[]                @relation("AttackAttacker")
+  services        Service[]               @relation("ServiceOwner")
+  flagInstances   FlagInstance[]
+  projects        Project[]
+  bracketAsA      BracketMatch[]          @relation("MatchTeamA")
+  bracketAsB      BracketMatch[]          @relation("MatchTeamB")
+  bracketWinner   BracketMatch[]          @relation("MatchWinner")
+
+  @@unique([ownerId, slug])
+  @@index([name])
+  @@map("teams")
+}
+
+model TeamMember {
+  id       String   @id @default(cuid(2)) @map("id")
+  teamId   String   @map("team_id")
+  userId   String   @map("user_id")
+  role     TeamRole @default(MEMBER) @map("role")
+  joinedAt DateTime @default(now()) @map("joined_at")
+  team     Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([teamId, userId])
+  @@index([userId])
+  @@map("team_members")
+}
+
+model TeamInvite {
+  id         String    @id @default(cuid(2)) @map("id")
+  teamId     String    @map("team_id")
+  senderId   String    @map("sender_id")
+  receiverId String    @map("receiver_id")
+  token      String    @unique @map("token")
+  expiresAt  DateTime  @map("expires_at")
+  acceptedAt DateTime? @map("accepted_at")
+  createdAt  DateTime  @default(now()) @map("created_at")
+  team       Team      @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  sender     User      @relation("InviteSender", fields: [senderId], references: [id], onDelete: Cascade)
+  receiver   User      @relation("InviteReceiver", fields: [receiverId], references: [id], onDelete: Cascade)
+
+  @@index([receiverId])
+  @@map("team_invites")
+}
+
+model Language {
+  id                String           @id @default(cuid(2)) @map("id")
+  slug              String           @unique @map("slug")
+  name              String           @map("name")
+  category          LanguageCategory @default(PROGRAMMING) @map("category")
+  judge0Id          Int              @map("judge0_id")
+  editorMode        String           @map("editor_mode")
+  extensions        String[]         @map("extensions")
+  defaultStdin      String?          @map("default_stdin")
+  template          String?          @map("template")
+  difficultyWeight  Float            @default(1.0) @map("difficulty_weight")
+  timeLimitFactor   Float            @default(1.0) @map("time_limit_factor")
+  memoryLimitFactor Float            @default(1.0) @map("memory_limit_factor")
+  enabled           Boolean          @default(true) @map("enabled")
+  createdAt         DateTime         @default(now()) @map("created_at")
+  updatedAt         DateTime         @updatedAt @map("updated_at")
+
+  tournaments TournamentLanguage[]
+  problems    ProblemLanguage[]
+  challenges  ChallengeLanguage[]
+  submissions Submission[]
+  judgeRuns   JudgeRun[]
+  services    Service[]
+
+  @@map("languages")
+}
+
+model Tournament {
+  id                   String               @id @default(cuid(2)) @map("id")
+  slug                 String               @unique @map("slug")
+  name                 String               @map("name")
+  tagline              String?              @map("tagline")
+  description          String?              @map("description")
+  bannerUrl            String?              @map("banner_url")
+  gameMode             GameMode             @map("game_mode")
+  status               TournamentStatus     @default(DRAFT) @map("status")
+  visibility           TournamentVisibility @default(PUBLIC) @map("visibility")
+  config               Json                 @map("config")
+  rules                String?              @map("rules")
+  startsAt             DateTime             @map("starts_at")
+  endsAt               DateTime             @map("ends_at")
+  registrationOpensAt  DateTime?            @map("registration_opens_at")
+  registrationClosesAt DateTime?            @map("registration_closes_at")
+  maxTeams             Int?                 @map("max_teams")
+  maxParticipants      Int?                 @map("max_participants")
+  teamSizeMin          Int                  @default(1) @map("team_size_min")
+  teamSizeMax          Int                  @default(5) @map("team_size_max")
+  requireVerifiedEmail Boolean              @default(true) @map("require_verified_email")
+  joinCode             String?              @unique @map("join_code")
+  prizePool            Int?                 @map("prize_pool")
+  currency             String?              @default("USD") @map("currency")
+  freezeScoreboardAt   DateTime?            @map("freeze_scoreboard_at")
+  createdById          String               @map("created_by_id")
+  organizationId       String?              @map("organization_id")
+  createdAt            DateTime             @default(now()) @map("created_at")
+  updatedAt            DateTime             @updatedAt @map("updated_at")
+
+  createdBy     User                    @relation("TournamentCreator", fields: [createdById], references: [id])
+  organization  Organization?           @relation(fields: [organizationId], references: [id], onDelete: SetNull)
+  languages     TournamentLanguage[]
+  participants  TournamentParticipant[]
+  teams         TournamentTeam[]
+  rounds        TournamentRound[]
+  categories    ChallengeCategory[]
+  challenges    Challenge[]
+  problems      Problem[]
+  projects      Project[]
+  rubrics       Rubric[]
+  services      Service[]
+  attacks       Attack[]
+  brackets      Bracket[]
+  submissions   Submission[]
+  scoreEvents   ScoreEvent[]
+  snapshots     ScoreSnapshot[]
+  announcements Announcement[]
+  chatMessages  ChatMessage[]
+  flags         Flag[]
+  prizes        Prize[]
+  gameEvents    GameEvent[]
+  reports       Report[]
+
+  @@index([status, startsAt])
+  @@index([gameMode])
+  @@index([organizationId])
+  @@map("tournaments")
+}
+
+model TournamentLanguage {
+  tournamentId String     @map("tournament_id")
+  languageId   String     @map("language_id")
+  tournament   Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  language     Language   @relation(fields: [languageId], references: [id], onDelete: Cascade)
+
+  @@id([tournamentId, languageId])
+  @@index([languageId])
+  @@map("tournament_languages")
+}
+
+model TournamentParticipant {
+  id           String     @id @default(cuid(2)) @map("id")
+  tournamentId String     @map("tournament_id")
+  userId       String     @map("user_id")
+  teamId       String?    @map("team_id")
+  registeredAt DateTime   @default(now()) @map("registered_at")
+  checkedInAt  DateTime?  @map("checked_in_at")
+  withdrawnAt  DateTime?  @map("withdrawn_at")
+  tournament   Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  team         Team?      @relation(fields: [teamId], references: [id], onDelete: SetNull)
+
+  @@unique([tournamentId, userId])
+  @@index([teamId])
+  @@map("tournament_participants")
+}
+
+model TournamentTeam {
+  id           String     @id @default(cuid(2)) @map("id")
+  tournamentId String     @map("tournament_id")
+  teamId       String     @map("team_id")
+  seed         Int?       @map("seed")
+  finalRank    Int?       @map("final_rank")
+  finalScore   Int        @default(0) @map("final_score")
+  eliminatedAt DateTime?  @map("eliminated_at")
+  tournament   Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  team         Team       @relation(fields: [teamId], references: [id], onDelete: Cascade)
+
+  @@unique([tournamentId, teamId])
+  @@index([teamId])
+  @@map("tournament_teams")
+}
+
+model TournamentRound {
+  id           String     @id @default(cuid(2)) @map("id")
+  tournamentId String     @map("tournament_id")
+  name         String     @map("name")
+  order        Int        @map("order")
+  startsAt     DateTime   @map("starts_at")
+  endsAt       DateTime   @map("ends_at")
+  frozen       Boolean    @default(false) @map("frozen")
+  config       Json?      @map("config")
+  tournament   Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+
+  @@unique([tournamentId, order])
+  @@map("tournament_rounds")
+}
+
+model ChallengeCategory {
+  id           String      @id @default(cuid(2)) @map("id")
+  tournamentId String      @map("tournament_id")
+  name         String      @map("name")
+  slug         String      @map("slug")
+  color        String?     @map("color")
+  description  String?     @map("description")
+  order        Int         @default(0) @map("order")
+  tournament   Tournament  @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  challenges   Challenge[]
+
+  @@unique([tournamentId, slug])
+  @@map("challenge_categories")
+}
+
+model Challenge {
+  id                String         @id @default(cuid(2)) @map("id")
+  tournamentId      String         @map("tournament_id")
+  categoryId        String?        @map("category_id")
+  authorId          String         @map("author_id")
+  slug              String         @map("slug")
+  title             String         @map("title")
+  description       String         @map("description")
+  kind              ChallengeKind  @default(STATIC) @map("kind")
+  state             ChallengeState @default(DRAFT) @map("state")
+  difficulty        String         @default("medium") @map("difficulty")
+  initialPoints     Int            @default(500) @map("initial_points")
+  minPoints         Int            @default(100) @map("min_points")
+  decayPerSolve     Int            @default(50) @map("decay_per_solve")
+  maxSolves         Int?           @map("max_solves")
+  solveCount        Int            @default(0) @map("solve_count")
+  firstBloodClaimed Boolean        @default(false) @map("first_blood_claimed")
+  unlockedAt        DateTime?      @map("unlocked_at")
+  publishedAt       DateTime?      @map("published_at")
+  createdAt         DateTime       @default(now()) @map("created_at")
+  updatedAt         DateTime       @updatedAt @map("updated_at")
+
+  tournament    Tournament              @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  category      ChallengeCategory?      @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  author        User                    @relation("ChallengeAuthor", fields: [authorId], references: [id])
+  languages     ChallengeLanguage[]
+  files         ChallengeFile[]
+  hints         ChallengeHint[]
+  flags         Flag[]
+  solves        ChallengeSolve[]
+  submissions   Submission[]
+  prerequisites ChallengePrerequisite[] @relation("ChallengePrerequisite")
+  unlocks       ChallengePrerequisite[] @relation("ChallengeUnlocks")
+  services      Service[]
+
+  @@unique([tournamentId, slug])
+  @@index([categoryId])
+  @@index([state])
+  @@map("challenges")
+}
+
+model ChallengePrerequisite {
+  challengeId        String    @map("challenge_id")
+  unlocksChallengeId String    @map("unlocks_challenge_id")
+  challenge          Challenge @relation("ChallengePrerequisite", fields: [challengeId], references: [id], onDelete: Cascade)
+  unlocksChallenge   Challenge @relation("ChallengeUnlocks", fields: [unlocksChallengeId], references: [id], onDelete: Cascade)
+
+  @@id([challengeId, unlocksChallengeId])
+  @@map("challenge_prerequisites")
+}
+
+model ChallengeLanguage {
+  challengeId String    @map("challenge_id")
+  languageId  String    @map("language_id")
+  challenge   Challenge @relation(fields: [challengeId], references: [id], onDelete: Cascade)
+  language    Language  @relation(fields: [languageId], references: [id], onDelete: Cascade)
+
+  @@id([challengeId, languageId])
+  @@index([languageId])
+  @@map("challenge_languages")
+}
+
+model ChallengeFile {
+  id          String    @id @default(cuid(2)) @map("id")
+  challengeId String    @map("challenge_id")
+  name        String    @map("name")
+  url         String    @map("url")
+  sizeBytes   Int       @map("size_bytes")
+  sha256      String?   @map("sha256")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  challenge   Challenge @relation(fields: [challengeId], references: [id], onDelete: Cascade)
+
+  @@index([challengeId])
+  @@map("challenge_files")
+}
+
+model ChallengeHint {
+  id          String    @id @default(cuid(2)) @map("id")
+  challengeId String    @map("challenge_id")
+  authorId    String    @map("author_id")
+  content     String    @map("content")
+  cost        Int       @default(0) @map("cost")
+  unlocksAt   DateTime? @map("unlocks_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  challenge   Challenge @relation(fields: [challengeId], references: [id], onDelete: Cascade)
+  author      User      @relation(fields: [authorId], references: [id])
+
+  @@index([challengeId])
+  @@map("challenge_hints")
+}
+
+model ChallengeSolve {
+  id            String    @id @default(cuid(2)) @map("id")
+  challengeId   String    @map("challenge_id")
+  teamId        String?   @map("team_id")
+  userId        String?   @map("user_id")
+  solvedAt      DateTime  @default(now()) @map("solved_at")
+  pointsAwarded Int       @map("points_awarded")
+  isFirstBlood  Boolean   @default(false) @map("is_first_blood")
+  durationMs    Int?      @map("duration_ms")
+  challenge     Challenge @relation(fields: [challengeId], references: [id], onDelete: Cascade)
+  team          Team?     @relation(fields: [teamId], references: [id], onDelete: SetNull)
+
+  @@index([challengeId, solvedAt])
+  @@index([teamId])
+  @@map("challenge_solves")
+}
+
+model Problem {
+  id            String    @id @default(cuid(2)) @map("id")
+  tournamentId  String    @map("tournament_id")
+  authorId      String    @map("author_id")
+  slug          String    @map("slug")
+  title         String    @map("title")
+  statement     String    @map("statement")
+  difficulty    String    @default("medium") @map("difficulty")
+  points        Int       @default(1) @map("points")
+  timeLimitMs   Int       @default(2000) @map("time_limit_ms")
+  memoryLimitKb Int       @default(262144) @map("memory_limit_kb")
+  maxSolves     Int?      @map("max_solves")
+  solveCount    Int       @default(0) @map("solve_count")
+  publishedAt   DateTime? @map("published_at")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  tournament  Tournament        @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  author      User              @relation("ProblemAuthor", fields: [authorId], references: [id])
+  languages   ProblemLanguage[]
+  testCases   ProblemTestCase[]
+  submissions Submission[]
+
+  @@unique([tournamentId, slug])
+  @@map("problems")
+}
+
+model ProblemLanguage {
+  problemId  String   @map("problem_id")
+  languageId String   @map("language_id")
+  problem    Problem  @relation(fields: [problemId], references: [id], onDelete: Cascade)
+  language   Language @relation(fields: [languageId], references: [id], onDelete: Cascade)
+
+  @@id([problemId, languageId])
+  @@index([languageId])
+  @@map("problem_languages")
+}
+
+model ProblemTestCase {
+  id             String                 @id @default(cuid(2)) @map("id")
+  problemId      String                 @map("problem_id")
+  order          Int                    @map("order")
+  input          String                 @map("input")
+  expectedOutput String                 @map("expected_output")
+  isSample       Boolean                @default(false) @map("is_sample")
+  points         Int                    @default(1) @map("points")
+  createdAt      DateTime               @default(now()) @map("created_at")
+  problem        Problem                @relation(fields: [problemId], references: [id], onDelete: Cascade)
+  results        SubmissionTestResult[]
+
+  @@unique([problemId, order])
+  @@map("problem_test_cases")
+}
+
+model Project {
+  id           String        @id @default(cuid(2)) @map("id")
+  tournamentId String        @map("tournament_id")
+  teamId       String        @map("team_id")
+  name         String        @map("name")
+  tagline      String?       @map("tagline")
+  description  String?       @map("description")
+  repoUrl      String?       @map("repo_url")
+  demoUrl      String?       @map("demo_url")
+  writeup      String?       @map("writeup")
+  status       ProjectStatus @default(DRAFT) @map("status")
+  revision     Int           @default(1) @map("revision")
+  submittedAt  DateTime?     @map("submitted_at")
+  createdAt    DateTime      @default(now()) @map("created_at")
+  updatedAt    DateTime      @updatedAt @map("updated_at")
+
+  tournament  Tournament          @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  team        Team                @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  assignments JudgingAssignment[]
+  assets      Asset[]
+
+  @@index([tournamentId, status])
+  @@index([teamId])
+  @@map("projects")
+}
+
+model Rubric {
+  id           String            @id @default(cuid(2)) @map("id")
+  tournamentId String            @map("tournament_id")
+  name         String            @map("name")
+  description  String?           @map("description")
+  order        Int               @default(0) @map("order")
+  tournament   Tournament        @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  criteria     RubricCriterion[]
+
+  @@index([tournamentId])
+  @@map("rubrics")
+}
+
+model RubricCriterion {
+  id          String        @id @default(cuid(2)) @map("id")
+  rubricId    String        @map("rubric_id")
+  name        String        @map("name")
+  description String?       @map("description")
+  maxScore    Int           @default(10) @map("max_score")
+  weight      Float         @default(1.0) @map("weight")
+  order       Int           @default(0) @map("order")
+  rubric      Rubric        @relation(fields: [rubricId], references: [id], onDelete: Cascade)
+  scores      RubricScore[]
+
+  @@index([rubricId])
+  @@map("rubric_criteria")
+}
+
+model JudgingAssignment {
+  id          String                  @id @default(cuid(2)) @map("id")
+  projectId   String                  @map("project_id")
+  judgeId     String                  @map("judge_id")
+  status      JudgingAssignmentStatus @default(ASSIGNED) @map("status")
+  blind       Boolean                 @default(true) @map("blind")
+  assignedAt  DateTime                @default(now()) @map("assigned_at")
+  startedAt   DateTime?               @map("started_at")
+  submittedAt DateTime?               @map("submitted_at")
+  totalScore  Float?                  @map("total_score")
+  feedback    String?                 @map("feedback")
+  project     Project                 @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  judge       User                    @relation(fields: [judgeId], references: [id], onDelete: Cascade)
+  scores      RubricScore[]
+
+  @@unique([projectId, judgeId])
+  @@index([judgeId, status])
+  @@map("judging_assignments")
+}
+
+model RubricScore {
+  id           String            @id @default(cuid(2)) @map("id")
+  assignmentId String            @map("assignment_id")
+  criterionId  String            @map("criterion_id")
+  score        Float             @map("score")
+  comment      String?           @map("comment")
+  createdAt    DateTime          @default(now()) @map("created_at")
+  updatedAt    DateTime          @updatedAt @map("updated_at")
+  assignment   JudgingAssignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  criterion    RubricCriterion   @relation(fields: [criterionId], references: [id], onDelete: Cascade)
+
+  @@unique([assignmentId, criterionId])
+  @@index([criterionId])
+  @@map("rubric_scores")
+}
+
+model Service {
+  id            String        @id @default(cuid(2)) @map("id")
+  tournamentId  String        @map("tournament_id")
+  ownerTeamId   String        @map("owner_team_id")
+  challengeId   String?       @map("challenge_id")
+  languageId    String?       @map("language_id")
+  name          String        @map("name")
+  dockerImage   String        @map("docker_image")
+  port          Int           @default(8080) @map("port")
+  status        ServiceStatus @default(PROVISIONING) @map("status")
+  checksPassed  Int           @default(0) @map("checks_passed")
+  checksFailed  Int           @default(0) @map("checks_failed")
+  currentFlagId String?       @map("current_flag_id")
+  deployedAt    DateTime?     @map("deployed_at")
+  lastCheckAt   DateTime?     @map("last_check_at")
+  killedAt      DateTime?     @map("killed_at")
+  createdAt     DateTime      @default(now()) @map("created_at")
+  updatedAt     DateTime      @updatedAt @map("updated_at")
+
+  tournament Tournament     @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  ownerTeam  Team           @relation("ServiceOwner", fields: [ownerTeamId], references: [id], onDelete: Cascade)
+  challenge  Challenge?     @relation(fields: [challengeId], references: [id], onDelete: SetNull)
+  language   Language?      @relation(fields: [languageId], references: [id], onDelete: SetNull)
+  flag       Flag?          @relation(fields: [currentFlagId], references: [id], onDelete: SetNull)
+  attacks    Attack[]
+  instances  FlagInstance[]
+
+  @@index([tournamentId, status])
+  @@index([ownerTeamId])
+  @@map("services")
+}
+
+model Attack {
+  id             String       @id @default(cuid(2)) @map("id")
+  tournamentId   String       @map("tournament_id")
+  serviceId      String       @map("service_id")
+  attackerTeamId String       @map("attacker_team_id")
+  script         String       @map("script")
+  status         AttackStatus @default(QUEUED) @map("status")
+  capturedFlagId String?      @map("captured_flag_id")
+  points         Int          @default(0) @map("points")
+  errorMessage   String?      @map("error_message")
+  createdAt      DateTime     @default(now()) @map("created_at")
+  finishedAt     DateTime?    @map("finished_at")
+  tournament     Tournament   @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  service        Service      @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  attackerTeam   Team         @relation("AttackAttacker", fields: [attackerTeamId], references: [id], onDelete: Cascade)
+
+  @@index([tournamentId, createdAt])
+  @@index([attackerTeamId])
+  @@map("attacks")
+}
+
+model Bracket {
+  id           String         @id @default(cuid(2)) @map("id")
+  tournamentId String         @map("tournament_id")
+  name         String         @map("name")
+  type         BracketType    @default(SINGLE_ELIMINATION) @map("type")
+  size         Int            @map("size")
+  createdAt    DateTime       @default(now()) @map("created_at")
+  tournament   Tournament     @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  matches      BracketMatch[]
+
+  @@index([tournamentId])
+  @@map("brackets")
+}
+
+model BracketMatch {
+  id        String      @id @default(cuid(2)) @map("id")
+  bracketId String      @map("bracket_id")
+  round     Int         @map("round")
+  position  Int         @map("position")
+  teamAId   String?     @map("team_a_id")
+  teamBId   String?     @map("team_b_id")
+  scoreA    Int         @default(0) @map("score_a")
+  scoreB    Int         @default(0) @map("score_b")
+  winnerId  String?     @map("winner_id")
+  status    MatchStatus @default(PENDING) @map("status")
+  startsAt  DateTime?   @map("starts_at")
+  endsAt    DateTime?   @map("ends_at")
+  languageA String?     @map("language_a")
+  languageB String?     @map("language_b")
+  bracket   Bracket     @relation(fields: [bracketId], references: [id], onDelete: Cascade)
+  teamA     Team?       @relation("MatchTeamA", fields: [teamAId], references: [id], onDelete: SetNull)
+  teamB     Team?       @relation("MatchTeamB", fields: [teamBId], references: [id], onDelete: SetNull)
+  winner    Team?       @relation("MatchWinner", fields: [winnerId], references: [id], onDelete: SetNull)
+
+  @@unique([bracketId, round, position])
+  @@index([teamAId])
+  @@index([teamBId])
+  @@map("bracket_matches")
+}
+
+model Flag {
+  id           String           @id @default(cuid(2)) @map("id")
+  tournamentId String           @map("tournament_id")
+  challengeId  String           @map("challenge_id")
+  value        String // AES-256-GCM ciphertext, never plaintext @map("value")
+  iv           String           @map("iv")
+  authTag      String           @map("auth_tag")
+  format       FlagFormat       @default(STATIC) @map("format")
+  points       Int              @default(0) @map("points")
+  isDynamic    Boolean          @default(false) @map("is_dynamic")
+  template     String? // dynamic flag template, e.g. "koarena{token_%s}" @map("template")
+  createdAt    DateTime         @default(now()) @map("created_at")
+  tournament   Tournament       @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  challenge    Challenge        @relation(fields: [challengeId], references: [id], onDelete: Cascade)
+  instances    FlagInstance[]
+  submissions  FlagSubmission[]
+  currentOf    Service[]
+
+  @@index([challengeId])
+  @@index([tournamentId])
+  @@map("flags")
+}
+
+model FlagInstance {
+  id        String    @id @default(cuid(2)) @map("id")
+  flagId    String    @map("flag_id")
+  teamId    String    @map("team_id")
+  serviceId String?   @map("service_id")
+  value     String // ciphertext @map("value")
+  iv        String    @map("iv")
+  authTag   String    @map("auth_tag")
+  active    Boolean   @default(true) @map("active")
+  rotatedAt DateTime  @default(now()) @map("rotated_at")
+  expiresAt DateTime? @map("expires_at")
+  flag      Flag      @relation(fields: [flagId], references: [id], onDelete: Cascade)
+  team      Team      @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  service   Service?  @relation(fields: [serviceId], references: [id], onDelete: SetNull)
+
+  @@unique([flagId, teamId])
+  @@index([teamId])
+  @@map("flag_instances")
+}
+
+model FlagSubmission {
+  id           String   @id @default(cuid(2)) @map("id")
+  tournamentId String   @map("tournament_id")
+  flagId       String   @map("flag_id")
+  instanceId   String?  @map("instance_id")
+  teamId       String?  @map("team_id")
+  userId       String   @map("user_id")
+  attemptHash  String // sha256 of the attempt — the raw attempt is never stored @map("attempt_hash")
+  correct      Boolean  @map("correct")
+  createdAt    DateTime @default(now()) @map("created_at")
+  flag         Flag     @relation(fields: [flagId], references: [id], onDelete: Cascade)
+  team         Team?    @relation(fields: [teamId], references: [id], onDelete: SetNull)
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([tournamentId, createdAt])
+  @@index([teamId, correct])
+  @@map("flag_submissions")
+}
+
+model Submission {
+  id             String           @id @default(cuid(2)) @map("id")
+  tournamentId   String           @map("tournament_id")
+  challengeId    String?          @map("challenge_id")
+  problemId      String?          @map("problem_id")
+  teamId         String?          @map("team_id")
+  userId         String           @map("user_id")
+  languageId     String           @map("language_id")
+  sourceCode     String           @map("source_code")
+  status         SubmissionStatus @default(QUEUED) @map("status")
+  score          Int              @default(0) @map("score")
+  verdict        String?          @map("verdict")
+  timeMs         Int?             @map("time_ms")
+  memoryKb       Int?             @map("memory_kb")
+  exitCode       Int?             @map("exit_code")
+  stdout         String?          @map("stdout")
+  stderr         String?          @map("stderr")
+  idempotencyKey String?          @unique @map("idempotency_key")
+  submittedAt    DateTime         @default(now()) @map("submitted_at")
+  judgedAt       DateTime?        @map("judged_at")
+
+  tournament  Tournament             @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  challenge   Challenge?             @relation(fields: [challengeId], references: [id], onDelete: Cascade)
+  problem     Problem?               @relation(fields: [problemId], references: [id], onDelete: Cascade)
+  team        Team?                  @relation(fields: [teamId], references: [id], onDelete: SetNull)
+  user        User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  language    Language               @relation(fields: [languageId], references: [id])
+  judgeRun    JudgeRun?
+  testResults SubmissionTestResult[]
+
+  @@index([tournamentId, submittedAt])
+  @@index([teamId])
+  @@index([problemId, status])
+  @@index([challengeId])
+  @@map("submissions")
+}
+
+model JudgeRun {
+  id           String         @id @default(cuid(2)) @map("id")
+  submissionId String?        @unique @map("submission_id")
+  languageId   String         @map("language_id")
+  runnerJobId  String?        @unique @map("runner_job_id")
+  runner       String         @default("judge0") @map("runner")
+  status       JudgeRunStatus @default(QUEUED) @map("status")
+  cpuMs        Int?           @map("cpu_ms")
+  maxMemoryKb  Int?           @map("max_memory_kb")
+  exitCode     Int?           @map("exit_code")
+  signal       String?        @map("signal")
+  output       String?        @map("output")
+  errorOutput  String?        @map("error_output")
+  queuedAt     DateTime       @default(now()) @map("queued_at")
+  startedAt    DateTime?      @map("started_at")
+  finishedAt   DateTime?      @map("finished_at")
+
+  language   Language    @relation(fields: [languageId], references: [id])
+  submission Submission? @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+
+  @@index([status, queuedAt])
+  @@map("judge_runs")
+}
+
+model SubmissionTestResult {
+  id           String           @id @default(cuid(2)) @map("id")
+  submissionId String           @map("submission_id")
+  testCaseId   String           @map("test_case_id")
+  status       SubmissionStatus @map("status")
+  timeMs       Int?             @map("time_ms")
+  memoryKb     Int?             @map("memory_kb")
+  output       String?          @map("output")
+  submission   Submission       @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  testCase     ProblemTestCase  @relation(fields: [testCaseId], references: [id], onDelete: Cascade)
+
+  @@unique([submissionId, testCaseId])
+  @@index([testCaseId])
+  @@map("submission_test_results")
+}
+
+model ScoreEvent {
+  id             String         @id @default(cuid(2)) @map("id")
+  tournamentId   String         @map("tournament_id")
+  teamId         String?        @map("team_id")
+  userId         String?        @map("user_id")
+  type           ScoreEventType @map("type")
+  points         Int // the base value of the thing scored @map("points")
+  weight         Float          @default(1) @map("weight")
+  delta          Int // signed change applied to the total @map("delta")
+  refType        String?        @map("ref_type")
+  refId          String?        @map("ref_id")
+  metadata       Json?          @map("metadata")
+  idempotencyKey String         @unique @map("idempotency_key")
+  createdAt      DateTime       @default(now()) @map("created_at")
+
+  tournament Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  team       Team?      @relation(fields: [teamId], references: [id], onDelete: SetNull)
+  user       User?      @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([tournamentId, createdAt])
+  @@index([tournamentId, teamId])
+  @@index([refType, refId])
+  @@map("score_events")
+}
+
+model ScoreSnapshot {
+  id           String    @id @default(cuid(2)) @map("id")
+  tournamentId String    @map("tournament_id")
+  teamId       String?   @map("team_id")
+  userId       String?   @map("user_id")
+  rank         Int       @map("rank")
+  score        Int       @default(0) @map("score")
+  solves       Int       @default(0) @map("solves")
+  penalty      Int       @default(0) @map("penalty")
+  lastEventAt  DateTime? @map("last_event_at")
+  capturedAt   DateTime  @default(now()) @map("captured_at")
+
+  tournament Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  team       Team?      @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  user       User?      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([tournamentId, teamId])
+  @@index([tournamentId, rank])
+  @@map("score_snapshots")
+}
+
+model Announcement {
+  id           String     @id @default(cuid(2)) @map("id")
+  tournamentId String     @map("tournament_id")
+  authorId     String     @map("author_id")
+  title        String     @map("title")
+  body         String     @map("body")
+  pinned       Boolean    @default(false) @map("pinned")
+  createdAt    DateTime   @default(now()) @map("created_at")
+  tournament   Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  author       User       @relation(fields: [authorId], references: [id])
+
+  @@index([tournamentId, createdAt])
+  @@map("announcements")
+}
+
+model ChatMessage {
+  id           String     @id @default(cuid(2)) @map("id")
+  tournamentId String     @map("tournament_id")
+  userId       String     @map("user_id")
+  teamId       String?    @map("team_id")
+  channel      String     @default("general") @map("channel")
+  body         String     @map("body")
+  deletedAt    DateTime?  @map("deleted_at")
+  createdAt    DateTime   @default(now()) @map("created_at")
+  tournament   Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([tournamentId, channel, createdAt])
+  @@map("chat_messages")
+}
+
+model Notification {
+  id        String           @id @default(cuid(2)) @map("id")
+  userId    String           @map("user_id")
+  type      NotificationType @map("type")
+  title     String           @map("title")
+  body      String?          @map("body")
+  href      String?          @map("href")
+  metadata  Json?            @map("metadata")
+  readAt    DateTime?        @map("read_at")
+  createdAt DateTime         @default(now()) @map("created_at")
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, readAt])
+  @@map("notifications")
+}
+
+model Asset {
+  id         String          @id @default(cuid(2)) @map("id")
+  kind       AssetKind       @map("kind")
+  visibility AssetVisibility @default(PRIVATE) @map("visibility")
+  ownerId    String          @map("owner_id")
+  projectId  String?         @map("project_id")
+  key        String          @unique @map("key")
+  url        String          @map("url")
+  name       String          @map("name")
+  mimeType   String          @map("mime_type")
+  sizeBytes  Int             @map("size_bytes")
+  sha256     String?         @map("sha256")
+  createdAt  DateTime        @default(now()) @map("created_at")
+  owner      User            @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  project    Project?        @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
+  @@map("assets")
+}
+
+model Prize {
+  id            String     @id @default(cuid(2)) @map("id")
+  tournamentId  String     @map("tournament_id")
+  name          String     @map("name")
+  rank          Int        @map("rank")
+  amount        Int?       @map("amount")
+  currency      String?    @default("USD") @map("currency")
+  description   String?    @map("description")
+  awardedTeamId String?    @map("awarded_team_id")
+  tournament    Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+
+  @@index([tournamentId])
+  @@map("prizes")
+}
+
+model GameEvent {
+  id           String     @id @default(cuid(2)) @map("id")
+  tournamentId String     @map("tournament_id")
+  actorId      String?    @map("actor_id")
+  type         String     @map("type")
+  payload      Json       @map("payload")
+  createdAt    DateTime   @default(now()) @map("created_at")
+  tournament   Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  actor        User?      @relation(fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([tournamentId, createdAt])
+  @@map("game_events")
+}

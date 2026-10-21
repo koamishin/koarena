@@ -1,0 +1,32 @@
+{
+  "name": "koarena",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@10.34.7",
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "start": "turbo run start",
+    "lint": "biome check .",
+    "lint:fix": "biome check --write .",
+    "format": "biome format --write .",
+    "typecheck": "turbo run typecheck",
+    "test": "turbo run test",
+    "check": "turbo run lint typecheck test",
+    "db:generate": "pnpm --filter @koarena/db generate",
+    "db:migrate": "pnpm --filter @koarena/db migrate",
+    "db:deploy": "pnpm --filter @koarena/db deploy",
+    "db:seed": "pnpm --filter @koarena/db seed",
+    "db:studio": "pnpm --filter @koarena/db studio",
+    "infra:up": "docker compose -f infra/docker-compose.yml up -d",
+    "infra:down": "docker compose -f infra/docker-compose.yml down"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.5.15",
+    "turbo": "2.11.10",
+    "typescript": "7.0.2"
+  }
+}

@@ -157,25 +157,24 @@ pnpm workspaces + Turborepo.
 ```
 koarena/
 ├─ apps/
-│  ├─ web/                    # TanStack Start app (the only deployable app)
+│  ├─ web/                    # TanStack Start app (the only deployable app)  ✅ Phase 0
 │  │  ├─ src/routes/          # file-based routes
-│  │  ├─ src/server/          # server functions, routers, auth wiring
-│  │  ├─ src/components/      # ui/ (shadcn) + reui/ + koarena/
-│  │  └─ src/features/        # one folder per domain slice
-│  ├─ judge/                  # BullMQ worker: polls Judge0, writes verdicts
-│  └─ adjudicator/            # optional: A/D bot + service supervisor (Phase 5)
+│  │  ├─ src/lib/             # auth helpers, shared utilities
+│  │  ├─ src/components/      # ui/ (shadcn) + reui/ + app components
+│  │  └─ src/features/        # one folder per domain slice        (Phase 1+)
+│  ├─ judge/                  # BullMQ worker: polls Judge0, writes verdicts   (Phase 3)
+│  └─ adjudicator/            # A/D bot + service supervisor                  (Phase 6)
 ├─ packages/
-│  ├─ db/                     # prisma/schema.prisma, generated client, seed
-│  ├─ game/                   # PURE scoring engine + mode rules (no I/O, 100% unit tested)
-│  ├─ runner/                 # Judge0 client + language registry + limits
-│  ├─ realtime/               # SSE endpoint, event contract, Redis fan-out
-│  ├─ ui/                     # shared design-system exports
-│  └─ config/                 # shared tsconfig / biome / eslint presets
+│  ├─ db/                     # prisma/schema.prisma, generated client, seed  ✅ Phase 0
+│  ├─ game/                   # PURE scoring engine + mode rules (no I/O)      ✅ Phase 0
+│  ├─ runner/                 # Judge0 client + language registry + limits     (Phase 3)
+│  ├─ realtime/               # SSE endpoint, event contract, Redis fan-out    (Phase 2)
+│  └─ config/                 # shared tsconfig / biome presets
 ├─ infra/
-│  ├─ docker-compose.yml      # postgres, redis, judge0, minio
-│  └─ judge0/                 # runner image build + language set
-├─ docs/                      # this plan + game modes + schema + routes
-└─ .opencode/skills/reui/     # ReUI agent skill (installed)
+│  ├─ docker-compose.yml      # postgres, redis, minio (optional profile)      ✅ Phase 0
+│  └─ judge0/                 # runner image build + language set              (Phase 3)
+├─ docs/                      # this plan + game modes + routes + deployment
+└─ .opencode/skills/reui/     # ReUI agent skill (installed)                   ✅ Phase 0
 ```
 
 **Hard rule:** `packages/game` contains zero imports from `apps/` or `prisma`. It takes
@@ -325,7 +324,8 @@ solve count → team name.
 
 ## 5. Data model
 
-Full draft: [`docs/PRISMA-SCHEMA.prisma`](docs/PRISMA-SCHEMA.prisma) (~50 models).
+Full draft: [`packages/db/prisma/schema.prisma`](packages/db/prisma/schema.prisma) —
+48 models, 24 enums, snake_case tables and columns, validated against the Prisma 7.10.1 CLI.
 
 Core groups:
 
@@ -464,19 +464,32 @@ modes become additive work on a proven engine.
 
 Each phase ends with something demonstrable, not just merged code.
 
-| Phase | Scope | Exit criteria |
-| --- | --- | --- |
-| **0 · Foundations** | Monorepo, TanStack Start 1.0, Tailwind v4, shadcn + ReUI, Prisma 7 + managed Postgres, Redis, Docker Compose, CI, Biome, Vitest, Clerk init | App boots, `/` renders, DB migrated, Clerk sign-in works, one ReUI `data-grid` on a fake table, CI green |
-| **1 · Identity & org** | Clerk middleware, roles, teams, orgs, tournament CRUD, organizer wizard step 1–2 | Organizer creates a tournament; player registers a team and joins |
-| **2 · CTF vertical slice** | Challenges, categories, hints, encrypted flags, submissions, dynamic scoring, **live scoreboard over SSE** | Full CTF playable end-to-end with 3 teams and a live board |
-| **3 · Code runner** | Monaco editor, Judge0 integration, BullMQ worker on the worker host, ACM mode, test cases, penalties | ACM tournament playable; verdicts stream to the UI |
-| **4 · Hackathon** | Project submissions, rubrics, judge assignment, judge queue, awards | Hackathon from submit → rubric scoring → results |
-| **5 · Security & scale** | Plagiarism detection, audit log, moderation, rate limits, observability, load test | 500 concurrent players on one tournament, board < 200 ms p95 |
-| **6 · Attack & Defense** | Service deployment, bots, attack capture, patch scoring, kill feed | A/D round playable with 2 teams and 1 service |
-| **7 · Language modes** | Polyglot Battle, Golf Royale, Bug Hunt, Knockout brackets, language roulette | All 8 modes reachable from the wizard |
+| Phase | Scope | Exit criteria | Status |
+| --- | --- | --- | --- |
+| **0 · Foundations** | Monorepo, TanStack Start 1.0, Tailwind v4, shadcn + ReUI, Prisma 7 + managed Postgres, Redis, Docker Compose, CI, Biome, Vitest, Clerk init | App boots, `/` renders, DB migrated, Clerk sign-in works, one ReUI `data-grid` on a fake table, CI green | **Done** |
+| **1 · Identity & org** | Clerk middleware, roles, teams, orgs, tournament CRUD, organizer wizard step 1–2 | Organizer creates a tournament; player registers a team and joins | Next |
+| **2 · CTF vertical slice** | Challenges, categories, hints, encrypted flags, submissions, dynamic scoring, **live scoreboard over SSE** | Full CTF playable end-to-end with 3 teams and a live board | |
+| **3 · Code runner** | Monaco editor, Judge0 integration, BullMQ worker on the worker host, ACM mode, test cases, penalties | ACM tournament playable; verdicts stream to the UI | |
+| **4 · Hackathon** | Project submissions, rubrics, judge assignment, judge queue, awards | Hackathon from submit → rubric scoring → results | |
+| **5 · Security & scale** | Plagiarism detection, audit log, moderation, rate limits, observability, load test | 500 concurrent players on one tournament, board < 200 ms p95 | |
+| **6 · Attack & Defense** | Service deployment, bots, attack capture, patch scoring, kill feed | A/D round playable with 2 teams and 1 service | |
+| **7 · Language modes** | Polyglot Battle, Golf Royale, Bug Hunt, Knockout brackets, language roulette | All 8 modes reachable from the wizard | |
 
 Rough effort: ~12–14 engineer-weeks to Milestone 1 with one engineer. Phases 0–4 are
 the critical path; phases 6–7 add modes on top of a proven engine.
+
+### Phase 0 — what was built
+
+| Piece | Where |
+| --- | --- |
+| pnpm workspace + Turborepo | `package.json`, `pnpm-workspace.yaml`, `turbo.json` |
+| TanStack Start 1.0 app | `apps/web` — routes for `/`, `/tournaments`, `/leaderboard`, `/organizer`, `/dashboard`, `/sign-in`, `/sign-up` |
+| Prisma 7 + Postgres | `packages/db` — 48 models, initial migration applied, 23 languages seeded |
+| Scoring engine | `packages/game` — all 8 modes, 26 unit tests, no I/O |
+| Design system | shadcn/ui `base-nova` + ReUI `data-grid`, `frame`, `badge`, `alert`, `filters` |
+| Auth | Clerk — provider, request middleware, sign-in/up routes, `requireUser` guard |
+| Local infra | `infra/docker-compose.yml` — Postgres 17, Redis 7, MinIO (optional profile) |
+| Tooling | Biome 2.5, Vitest 5, GitHub Actions CI |
 
 ---
 
@@ -521,5 +534,8 @@ Still open, and easy to change later:
 | ReUI agent skill | Installed globally (`~/.config/opencode/skills/reui`, v`68f0e6fa91`) and per project (`.opencode/skills/reui`) |
 | ReUI install scaffolding | `.mcp.json`, `.cursor/`, `.claude/`, `.agents/`, `.gemini/`, `AGENTS.md` design rules block |
 | ReUI plan | **Free** — 27 components + all `c-*` examples, no license needed |
-| Repo | Clean `main` branch, only `README.md` + `assets/icon.svg` |
-| Toolchain | Node `22.22.1`, npm `10.9.9`, Bun `1.3.14`. **pnpm is not installed** — run `corepack enable && corepack prepare pnpm@10 --activate` as part of Phase 0 (Bun 1.3.14 is a working fallback for the workspace tooling) |
+| Clerk | `@clerk/tanstack-react-start` 1.7.4 wired: provider, request middleware, `/sign-in` + `/sign-up`, `requireUser` guard. 8 Clerk agent skills installed in `~/.agents/skills/` |
+| Toolchain | Node `22.22.1`, npm `10.9.9`, **pnpm `10.34.7`** (installed to `~/.local/bin`), Bun `1.3.14` |
+| Local infra | Postgres 17 + Redis 7 running via `infra/docker-compose.yml`; MinIO behind the optional `storage` profile |
+| Database | 49 tables created by the initial migration, 23 languages + a demo organization seeded |
+| Repo | `main` branch — plan committed, then the Phase 0 implementation |

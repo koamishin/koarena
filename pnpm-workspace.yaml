@@ -1,0 +1,13 @@
+packages:
+  - "apps/*"
+  - "packages/*"
+
+# TanStack Start ships esbuild + lightningcss native binaries.
+onlyBuiltDependencies:
+  - esbuild
+  - lightningcss
+  - "@tailwindcss/oxide"
+  - prisma
+  - "@prisma/engines"
+  - "@prisma/client"
+  - sharp

@@ -1,10 +1,40 @@
-.secrets/
-.env
-.env.local
+# dependencies
 node_modules/
+.pnpm-store/
+
+# build output
 dist/
 build/
-.turbo/
 .output/
+.turbo/
+.tanstack/
+coverage/
+
+# generated code
+packages/db/generated/
+apps/web/src/routeTree.gen.ts
+
+# environment
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# secrets
+.secrets/
+
+# tool state
+.clerk/
+.vscode/*
+!.vscode/extensions.json
+.idea/
+
+# logs
 *.log
+npm-debug.log*
+pnpm-debug.log*
+yarn-error.log*
+
+# os
 .DS_Store
+Thumbs.db
