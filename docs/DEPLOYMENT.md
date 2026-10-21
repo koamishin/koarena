@@ -295,7 +295,7 @@ JUDGE_CONCURRENCY="4"
 
 ```bash
 # 1. database
-pnpm --filter @koarena/db prisma migrate deploy
+pnpm db:deploy          # pnpm --filter @koarena/db run deploy
 
 # 2. web app (Vercel)
 vercel deploy --prod          # or let the Vercel Git integration handle it
