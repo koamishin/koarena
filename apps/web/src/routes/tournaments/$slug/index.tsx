@@ -241,6 +241,10 @@ function TournamentDetailPage() {
                     ) : (
                       <div className="flex items-center gap-2">
                         <Select
+                          items={teams.map((team) => ({
+                            value: team.id,
+                            label: `${team.name} (${team.memberCount})`,
+                          }))}
                           value={teamId}
                           onValueChange={(value) => setTeamId(value ?? '')}
                         >

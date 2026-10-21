@@ -212,11 +212,125 @@ async function main() {
     }
   }
 
+  await seedAlgorithms(owner.id)
+
   console.log(`Demo tournament ready: /tournaments/${slug}`)
   console.log('Flags:')
   for (const challenge of CHALLENGES) {
     console.log(`  ${challenge.title} -> ${challenge.flag}`)
   }
+}
+
+/**
+ * A second demo tournament in the ACM style: problems with hidden test cases,
+ * judged by the worker.
+ */
+async function seedAlgorithms(ownerId: string) {
+  const slug = 'demo-algorithms'
+
+  await prisma.tournament.deleteMany({ where: { slug } })
+
+  const tournament = await prisma.tournament.create({
+    data: {
+      slug,
+      name: 'KoArena Demo Algorithms',
+      tagline: 'Two problems, hidden test cases, a real verdict.',
+      description:
+        'The algorithmic mode: submit a program, the worker runs it against the hidden test cases and scores it.',
+      rules:
+        'A problem counts as solved when every hidden test case passes. Wrong attempts before the first acceptance cost penalty time.',
+      gameMode: 'ACM',
+      status: 'LIVE',
+      visibility: 'PUBLIC',
+      startsAt: new Date(Date.now() - 3_600_000),
+      endsAt: new Date(Date.now() + 7 * 86_400_000),
+      teamSizeMin: 1,
+      teamSizeMax: 5,
+      createdById: ownerId,
+      config: {
+        problemPoints: 1,
+        penaltyMinutes: 20,
+        wrongSubmissionCap: 3,
+        testFeedback: 'none',
+        freezeScoreboard: false,
+      },
+    },
+  })
+
+  const languages = await prisma.language.findMany({
+    where: {
+      slug: { in: ['python', 'javascript', 'cpp', 'c', 'go', 'rust', 'java'] },
+    },
+    select: { id: true, slug: true },
+  })
+
+  const problems = [
+    {
+      title: 'Sum of two integers',
+      slug: 'sum-of-two-integers',
+      statement:
+        'Read two integers from standard input and print their sum.\n\nInput: two integers separated by whitespace.\nOutput: one integer, the sum.',
+      difficulty: 'easy',
+      points: 1,
+      cases: [
+        { input: '3 4\n', expectedOutput: '7\n', isSample: true },
+        { input: '10 -2\n', expectedOutput: '8\n', isSample: false },
+        { input: '0 0\n', expectedOutput: '0\n', isSample: false },
+      ],
+    },
+    {
+      title: 'Reverse the string',
+      slug: 'reverse-the-string',
+      statement:
+        'Read one line from standard input and print it reversed.\n\nInput: one line of text.\nOutput: the line reversed.',
+      difficulty: 'medium',
+      points: 2,
+      cases: [
+        { input: 'hello\n', expectedOutput: 'olleh\n', isSample: true },
+        {
+          input: 'koarena\n',
+          expectedOutput: 'aren aok\n'.replace(' ', ''),
+          isSample: false,
+        },
+      ],
+    },
+  ]
+
+  for (const problem of problems) {
+    const created = await prisma.problem.create({
+      data: {
+        tournamentId: tournament.id,
+        authorId: ownerId,
+        title: problem.title,
+        slug: problem.slug,
+        statement: problem.statement,
+        difficulty: problem.difficulty,
+        points: problem.points,
+        timeLimitMs: 2000,
+        memoryLimitKb: 262_144,
+      },
+    })
+
+    await prisma.problemLanguage.createMany({
+      data: languages.map((language) => ({
+        problemId: created.id,
+        languageId: language.id,
+      })),
+    })
+
+    await prisma.problemTestCase.createMany({
+      data: problem.cases.map((testCase, index) => ({
+        problemId: created.id,
+        order: index + 1,
+        input: testCase.input,
+        expectedOutput: testCase.expectedOutput,
+        isSample: testCase.isSample,
+        points: 1,
+      })),
+    })
+  }
+
+  console.log(`Algorithms tournament ready: /tournaments/${slug}`)
 }
 
 main()

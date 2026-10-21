@@ -67,6 +67,20 @@ function OrganizerTournamentLayout() {
           >
             Challenges
           </Button>
+          {tournament.gameMode === 'ACM' ? (
+            <Button
+              size="sm"
+              variant="outline"
+              render={
+                <Link
+                  to="/organizer/$tournamentId/problems"
+                  params={{ tournamentId: tournament.id }}
+                />
+              }
+            >
+              Problems
+            </Button>
+          ) : null}
         </nav>
       </div>
 

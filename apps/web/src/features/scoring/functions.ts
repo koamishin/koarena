@@ -1,8 +1,7 @@
 import { getPrisma } from '@koarena/db'
+import { getStandings } from '@koarena/ledger'
 import { createServerFn } from '@tanstack/react-start'
 import { z } from 'zod'
-
-import { getStandings } from './scoring.server'
 
 export const getStandingsFn = createServerFn({ method: 'GET' })
   .validator(z.object({ tournamentId: z.string().min(1) }))

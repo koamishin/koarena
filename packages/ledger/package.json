@@ -1,0 +1,24 @@
+{
+  "name": "@koarena/ledger",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./functions": "./src/functions.ts",
+    "./test-support": "./src/test-support.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@koarena/db": "workspace:*",
+    "@koarena/game": "workspace:*",
+    "@koarena/realtime": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "typescript": "7.0.2",
+    "vitest": "5.0.5"
+  }
+}

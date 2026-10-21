@@ -1,7 +1,6 @@
 import { getPrisma } from '@koarena/db'
+import { getStandings } from '@koarena/ledger'
 import { type LiveEvent, subscribeLiveEvents } from '@koarena/realtime'
-
-import { getStandings } from '../scoring/scoring.server'
 
 /**
  * Server-only: the live SSE stream for one tournament.

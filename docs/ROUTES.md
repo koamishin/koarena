@@ -26,9 +26,13 @@ Conventions:
 | `/tournaments` | `tournaments/index.tsx` | Browse live + upcoming tournaments | `filters` + `data-grid` (Frame-led) |
 | `/tournaments/$slug` | `tournaments/$slug/index.tsx` | Tournament hub: about, rules, timeline, join | Card-led, `timeline` for the schedule |
 | `/tournaments/$slug/scoreboard` | `.../scoreboard.tsx` | Live standings | Frame-led, `data-grid` + `badge` rank states |
+| `/tournaments/$slug/challenges` | `.../challenges/index.tsx` | CTF challenge board | `filters` + `badge` difficulty |
+| `/tournaments/$slug/challenges/$challengeId` | `.../challenges/$challengeId/index.tsx` | Challenge detail, files, hints, flag input | Card-led, `code-block` for hints, `alert` for hints |
+| `/tournaments/$slug/problems` | `.../problems/index.tsx` | ACM problem list | Frame-led, `badge` for difficulty |
+| `/tournaments/$slug/problems/$problemId` | `.../problems/$problemId/index.tsx` | Problem + Monaco editor + submit + verdict | Card-led, Monaco in a bordered frame |
 | `/tournaments/$slug/archive` | `.../archive.tsx` | Past tournaments, top boards | Frame-led, `data-grid` |
 | `/leaderboard` | `leaderboard/index.tsx` | Global all-time player board | Frame-led, `data-grid` |
-| `/login`, `/register` | `auth/*.tsx` | Auth | Card-led, shadcn `card` + `form` |
+| `/sign-in`, `/sign-up` | `auth/*.tsx` | Auth | Clerk owns the screens |
 
 > Clerk owns the actual sign-in screens. KoArena links to `/sign-in` (Clerk's hosted
 > route) and only renders its own `auth/callback` screen for the tournament join-code
@@ -39,14 +43,9 @@ Conventions:
 | Route | Purpose | UI owners |
 | --- | --- | --- |
 | `/dashboard` | My tournaments, teams, submissions | Cards + `data-grid` (Frame-led for the table) |
-| `/tournaments/$slug/play` | Mode-dependent entry point | — |
-| `/tournaments/$slug/play/challenges` | CTF challenge board | Cards + `filters` + `badge` difficulty |
-| `/tournaments/$slug/play/challenges/$id` | Challenge detail, files, hints, flag input | Card-led, `code-block` for hints, `alert` for hints |
-| `/tournaments/$slug/play/problems` | ACM problem list | Cards + `filters` |
-| `/tournaments/$slug/play/problems/$id` | Problem + editor + submit | Frame-led, Monaco in `frame`, `tabs` for files |
-| `/tournaments/$slug/play/services` | A/D control panel | Frame-led, `data-grid` (services) + `timeline` (kill feed) |
-| `/tournaments/$slug/play/brackets` | Knockout bracket | Frame-led, `kanban`-style match columns |
-| `/tournaments/$slug/play/teams/$id` | Team view (captain: manage roster) | Cards + `data-grid` (members) |
+| `/tournaments/$slug/services` | A/D control panel | Frame-led, `data-grid` (services) + `timeline` (kill feed) |
+| `/tournaments/$slug/brackets` | Knockout bracket | Frame-led, `kanban`-style match columns |
+| `/tournaments/$slug/teams/$id` | Team view (captain: manage roster) | Cards + `data-grid` (members) |
 | `/tournaments/$slug/submissions` | My submissions | Frame-led, `data-grid` + `code-block` for output |
 | `/tournaments/$slug/solutions/$id` | Read-only solution (writeup) | Card-led, `code-block` + `timeline` |
 
@@ -63,10 +62,10 @@ Conventions:
 | Route | Purpose | UI owners |
 | --- | --- | --- |
 | `/organizer` | My tournaments + templates | Cards + `data-grid` |
-| `/organizer/$id/setup` | Creation wizard (mode-aware steps) | Card-led, `stepper` (`c-stepper-4` controlled) |
-| `/organizer/$id` | Control room: live state, quick actions | Cards (KPIs) + `frame` (table) |
-| `/organizer/$id/challenges` | Challenge manager | Frame-led, `data-grid` + `filters` |
-| `/organizer/$id/problems` | Problem + test case manager | Frame-led, `data-grid` + `code-block` (test data) |
+| `/organizer/new` | Creation wizard (mode-aware steps) | Card-led, `stepper` (`c-stepper-4` controlled) |
+| `/organizer/$tournamentId` | Control room: live state, quick actions | Cards (KPIs) + `frame` (table) |
+| `/organizer/$tournamentId/challenges` | Challenge manager | Frame-led, `data-grid` + `filters` |
+| `/organizer/$tournamentId/problems` | Problem + test case manager (ACM only) | Frame-led, `data-grid` + `code-block` (test data) |
 | `/organizer/$id/languages` | Enabled languages + weights | Cards, `number-field` for weights |
 | `/organizer/$id/teams` | Registered teams, seeding, kick | Frame-led, `data-grid` |
 | `/organizer/$id/judging` | Judge assignments (hackathon) | Frame-led, `data-grid` + `filters` |
@@ -96,6 +95,9 @@ Conventions:
 | `api/judge/webhook` | Judge0 result callback (signed) |
 | `api/clerk/webhook` | Clerk `user.created` / `user.updated` / `user.deleted` → mirror into `User` |
 | `api/files/$assetId` | Signed download redirect for assets |
+
+> The live channel is keyed by the tournament **slug**, not its id: the browser
+> opens `/api/live/<slug>` and the route resolves the tournament from it.
 
 ### Live event contract
 

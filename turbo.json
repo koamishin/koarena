@@ -7,6 +7,9 @@
     "DIRECT_DATABASE_URL",
     "REDIS_URL",
     "FLAG_ENCRYPTION_KEY",
+    "RUNNER_MODE",
+    "JUDGE0_URL",
+    "JUDGE0_API_KEY",
     "NODE_ENV"
   ],
   "tasks": {

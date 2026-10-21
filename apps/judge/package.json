@@ -1,0 +1,27 @@
+{
+  "name": "@koarena/judge",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "start": "tsx src/index.ts",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@koarena/db": "workspace:*",
+    "@koarena/game": "workspace:*",
+    "@koarena/ledger": "workspace:*",
+    "@koarena/queue": "workspace:*",
+    "@koarena/realtime": "workspace:*",
+    "@koarena/runner": "workspace:*",
+    "bullmq": "6.3.19",
+    "dotenv": "18.0.8"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "tsx": "4.23.15",
+    "typescript": "7.0.2",
+    "vitest": "5.0.5"
+  }
+}

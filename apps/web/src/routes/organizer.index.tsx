@@ -48,6 +48,7 @@ function OrganizerIndexPage() {
         <FramePanel>
           <TournamentsGrid
             tournaments={tournaments}
+            showManage
             emptyAction={{
               label: 'Create the first one',
               to: '/organizer/new',

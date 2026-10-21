@@ -21,10 +21,14 @@ Created in [T3 Code](https://t3.codes).
 
 ```
 apps/web         TanStack Start app (SSR, server functions, routes)
+apps/judge       BullMQ worker — runs the code, writes the verdicts
 packages/db      Prisma schema, generated client, seed
 packages/game    Pure scoring engine — all 8 game modes, no I/O
 packages/crypto  Flag encryption (AES-256-GCM)
 packages/realtime The live bus (Redis pub/sub + the event contract)
+packages/runner  The runner contract: Judge0 client, local runner, simulated runner
+packages/queue   The judging queue — one job shape, both ends
+packages/ledger  The score ledger — append-only, shared by the app and the worker
 infra            Docker Compose (Postgres, Redis, MinIO)
 docs             Plan, game modes, routes, deployment
 ```
@@ -35,11 +39,13 @@ docs             Plan, game modes, routes, deployment
 pnpm install
 cp .env.example packages/db/.env    # point DATABASE_URL at your Postgres
 cp .env.example apps/web/.env        # plus FLAG_ENCRYPTION_KEY
+cp apps/judge/.env.example apps/judge/.env   # the worker shares the same database
 pnpm db:generate
 pnpm db:migrate
 pnpm db:seed                        # 23 languages + a demo organization
-pnpm db:seed:demo                   # a four-challenge CTF to click through
+pnpm db:seed:demo                   # a four-challenge CTF and a two-problem ACM round
 pnpm dev                            # http://localhost:3100
+pnpm dev:judge                      # the judging worker, in a second terminal
 ```
 
 The demo CTF's flags are listed by the seed script. Set
@@ -69,15 +75,43 @@ Use the **pooled** endpoint, not a direct one: serverless concurrency will
 exhaust direct connections. `sslmode=verify-full` verifies the server
 certificate's hostname; `require` works too but does not.
 
-## Playing the demo tournament
+## Playing the demo tournaments
 
 ```bash
-pnpm db:seed:demo          # creates /tournaments/demo-ctf
+pnpm db:seed:demo          # creates /tournaments/demo-ctf and /tournaments/demo-algorithms
 ```
 
-Four challenges with encrypted flags, live point decay and first blood. Open the
-challenge board, submit a flag, and watch the scoreboard move in another tab —
-the live channel is Server-Sent Events over Redis pub/sub.
+**`/tournaments/demo-ctf`** — four challenges with encrypted flags, live point decay and
+first blood. Open the challenge board, submit a flag, and watch the scoreboard move in
+another tab: the live channel is Server-Sent Events over Redis pub/sub.
+
+**`/tournaments/demo-algorithms`** — the ACM mode. Two problems with hidden test cases,
+a Monaco editor, and a real verdict. Submit a program and the worker runs it against the
+test cases; the verdict comes back over the live channel and the scoreboard moves.
+
+The demo runs with the **simulated** runner (`RUNNER_MODE=simulated`), so no sandbox is
+needed: the verdict comes from a marker in the source — `/* verdict:wrong-answer */`,
+`/* verdict:time-limit */`, `/* verdict:compile-error */`, `/* verdict:runtime-error */`.
+Without a marker the program is accepted. Set `RUNNER_MODE=judge0` with a Judge0
+instance to run real code, or `RUNNER_MODE=local` to execute it on the worker (development
+only — it runs the submitted program with the worker's own privileges).
+
+## The judging path
+
+```
+browser → apps/web → submission row + a job in Redis
+                              ↓
+                       apps/judge (the worker)
+                              ↓
+                   packages/runner → Judge0
+                              ↓
+              verdict + score event + live event
+```
+
+The app never talks to the sandbox. The job carries only the submission id; everything
+else is read from the database, so a job can be replayed by hand and the database stays
+the source of truth. The worker calls `@koarena/game` for the points and the penalty, so
+the rules live in one place.
 
 ## The server/client boundary
 
@@ -111,15 +145,20 @@ Two rules keep this working:
    `unknown` in a return type collapses the inferred type — return ISO strings
    and use `JsonValue` for config objects.
 
-The same applies to the workspace packages: `@koarena/db`, `@koarena/crypto` and
-`@koarena/realtime` are all listed as denied specifiers in the client
-environment, so importing one from a component fails the build.
+The same applies to the workspace packages: `@koarena/db`, `@koarena/crypto`,
+`@koarena/realtime`, `@koarena/ledger`, `@koarena/queue` and `@koarena/runner` are all
+listed as denied specifiers in the client environment, so importing one from a component
+fails the build. A **dynamic** `import('@koarena/db')` fails it too: the compiler does
+not prune dynamic imports, so the database client would head for the browser bundle.
+Put the query behind a server function instead.
 
 ## Commands
 
 | Command | What it does |
 | --- | --- |
 | `pnpm dev` | Run every app in the workspace |
+| `pnpm dev:judge` | Run the judging worker in watch mode |
+| `pnpm judge` | Run the judging worker once |
 | `pnpm build` | Build all packages |
 | `pnpm lint` | Biome check |
 | `pnpm typecheck` | `tsc --noEmit` across the workspace |

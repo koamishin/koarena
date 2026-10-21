@@ -149,8 +149,11 @@ What lives in Redis:
 | `board:{tournamentId}` | ZSET | Live leaderboard: member = team id, score = points |
 | `events:{tournamentId}` | Stream (or ZSET) | Recent game events, used for SSE resume via `Last-Event-ID` |
 | `notify:{tournamentId}` | Pub/Sub | Fan-out channel between app instances and the SSE endpoint |
-| `bull:judge` | BullMQ | Judging jobs |
+| `bull:koarena-judge` | BullMQ | Judging jobs — one job per submission |
 | `bull:notify` | BullMQ | Notification emails, score recompute |
+
+> BullMQ **queue names cannot contain a colon** — the queue is `koarena-judge`, and
+> BullMQ adds the `bull:` prefix itself.
 
 ---
 
@@ -242,7 +245,7 @@ use `424242` for any verification code.
 
 | Variable | Where | Notes |
 | --- | --- | --- |
-| `DATABASE_URL` | Vercel + worker host | Pooled TCP URI |
+| `DATABASE_URL` | Vercel + worker host | Pooled TCP URI — **the same one** on both |
 | `DIRECT_DATABASE_URL` | CI only | Unpooled URI for `prisma migrate` |
 | `REDIS_URL` | Vercel + worker host | Classic TCP Redis |
 | `CLERK_SECRET_KEY` | Vercel | Server only — never exposed to the client |
@@ -250,6 +253,9 @@ use `424242` for any verification code.
 | `CLERK_WEBHOOK_SECRET` | Vercel | Signs `user.created` / `user.updated` / `user.deleted` |
 | `JUDGE0_URL` | worker host | Base URL of the Judge0 API, internal network only |
 | `JUDGE0_API_KEY` | worker host | Judge0 API key |
+| `RUNNER_MODE` | worker host | `judge0` in production, `simulated` for a sandbox-free clone |
+| `RUNNER_ALLOW_LOCAL_EXECUTION` | worker host | Only for `RUNNER_MODE=local`; never in production |
+| `JUDGE_CONCURRENCY` | worker host | Submissions judged at once — keep it below Judge0's `RUNNERS` |
 | `FLAG_ENCRYPTION_KEY` | Vercel + worker host | 32-byte base64 key for AES-256-GCM flag encryption |
 | `S3_*` / `R2_*` | Vercel | Object storage for attachments and project archives |
 | `RESEND_API_KEY` | Vercel | Transactional email |
@@ -257,6 +263,31 @@ use `424242` for any verification code.
 
 `.env.local` is gitignored; production values are set in the Vercel project settings and
 on the worker host.
+
+### The worker's environment
+
+The worker reads its own `.env` (via `dotenv/config`) from `apps/judge/`. It needs the
+**same** `DATABASE_URL` and `REDIS_URL` as the app — a worker pointed at a different
+database will fail every job with "submission does not exist", which looks exactly like
+a broken app.
+
+```bash
+# apps/judge/.env
+DATABASE_URL="postgres://...?sslmode=verify-full"
+REDIS_URL="redis://localhost:6379"
+RUNNER_MODE="judge0"
+JUDGE0_URL="http://judge0:2357"
+JUDGE0_API_KEY=""
+JUDGE_CONCURRENCY="4"
+```
+
+### The three runners
+
+| `RUNNER_MODE` | What it does | Use it for |
+| --- | --- | --- |
+| `judge0` | Submits to Judge0 and polls for the verdict | Production |
+| `local` | Really executes Python/Node/Bash on the worker with a timeout | Development only — it runs untrusted code with the worker's privileges, so it refuses to start unless `RUNNER_ALLOW_LOCAL_EXECUTION=true` |
+| `simulated` | Decides the verdict from a marker in the source (`/* verdict:wrong-answer */`) | A clone with no sandbox: the whole queue → worker → verdict → penalty → board path still runs |
 
 ---
 
@@ -271,10 +302,34 @@ vercel deploy --prod          # or let the Vercel Git integration handle it
 
 # 3. worker host
 docker compose -f infra/docker-compose.worker.yml up -d --build
+
+# 4. the worker itself (it is a plain Node process)
+cd apps/judge && pnpm start
 ```
 
 CI runs on every push: `biome check` → `tsc --noEmit` → `vitest run` → `playwright test`
 → `prisma migrate deploy` (staging) → `vercel deploy --prebuilt`.
+
+### Recovering a broken board
+
+The score snapshot is derived state; the ledger is the source of truth. If the board
+drifts — a duplicated event, a dropped write, a hand-edited row — rebuild it:
+
+```ts
+import { rebuildSnapshots, rerankStandings } from '@koarena/ledger'
+
+await rebuildSnapshots(tournamentId)   // drops the snapshots, recomputes from the events
+await rerankStandings(tournamentId, gameMode)
+```
+
+`rebuildSnapshots` also removes the standing of a participant whose events are gone: the
+events decide who is on the board, not the snapshot.
+
+### Recovering a stuck submission
+
+The worker marks a submission as failed when its job runs out of attempts, and the
+reaper sweeps anything that has been waiting more than five minutes. A submission that
+says `QUEUED` for minutes has been swept and will say `ERROR` instead.
 
 ---
 

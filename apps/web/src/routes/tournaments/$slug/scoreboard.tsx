@@ -12,7 +12,7 @@ import {
 } from '@/components/reui/frame'
 
 import { useLiveEvents } from '../../../features/live/useLiveEvents'
-import { getStandingsFn } from '../../../features/scoring/scoring.functions'
+import { getStandingsFn } from '../../../features/scoring/functions'
 import { getTournamentBySlug } from '../../../features/tournaments/tournaments.functions'
 
 export const Route = createFileRoute('/tournaments/$slug/scoreboard')({

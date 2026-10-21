@@ -22,7 +22,9 @@
     "db:seed": "pnpm --filter @koarena/db seed",
     "db:studio": "pnpm --filter @koarena/db studio",
     "infra:up": "docker compose -f infra/docker-compose.yml up -d",
-    "infra:down": "docker compose -f infra/docker-compose.yml down"
+    "infra:down": "docker compose -f infra/docker-compose.yml down",
+    "dev:judge": "pnpm --filter @koarena/judge dev",
+    "judge": "pnpm --filter @koarena/judge start"
   },
   "devDependencies": {
     "@biomejs/biome": "2.5.15",

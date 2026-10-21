@@ -162,13 +162,15 @@ koarena/
 │  │  ├─ src/lib/             # auth helpers, shared utilities
 │  │  ├─ src/components/      # ui/ (shadcn) + reui/ + app components
 │  │  └─ src/features/        # one folder per domain slice        (Phase 1+)
-│  ├─ judge/                  # BullMQ worker: polls Judge0, writes verdicts   (Phase 3)
+│  ├─ judge/                  # BullMQ worker: runs the code, writes verdicts  ✅ Phase 3
 │  └─ adjudicator/            # A/D bot + service supervisor                  (Phase 6)
 ├─ packages/
 │  ├─ db/                     # prisma/schema.prisma, generated client, seed  ✅ Phase 0
 │  ├─ game/                   # PURE scoring engine + mode rules (no I/O)      ✅ Phase 0
-│  ├─ runner/                 # Judge0 client + language registry + limits     (Phase 3)
-│  ├─ realtime/               # SSE endpoint, event contract, Redis fan-out    (Phase 2)
+│  ├─ runner/                 # Judge0 client + language registry + limits     ✅ Phase 3
+│  ├─ queue/                  # the judging queue: one job shape, both ends    ✅ Phase 3
+│  ├─ ledger/                 # the score ledger: append-only, shared by both ✅ Phase 3
+│  ├─ realtime/               # SSE endpoint, event contract, Redis fan-out    ✅ Phase 2
 │  └─ config/                 # shared tsconfig / biome presets
 ├─ infra/
 │  ├─ docker-compose.yml      # postgres, redis, minio (optional profile)      ✅ Phase 0
@@ -468,9 +470,9 @@ Each phase ends with something demonstrable, not just merged code.
 | --- | --- | --- | --- |
 | **0 · Foundations** | Monorepo, TanStack Start 1.0, Tailwind v4, shadcn + ReUI, Prisma 7 + managed Postgres, Redis, Docker Compose, CI, Biome, Vitest, Clerk init | App boots, `/` renders, DB migrated, Clerk sign-in works, one ReUI `data-grid` on a real table, CI green | **Done** |
 | **1 · Identity & org** | Clerk roles + sync, teams + invites, tournament CRUD, the organizer wizard, public browse + registration | Organizer creates a tournament; player registers a team and joins | **Done** |
-| **2 · CTF vertical slice** | Challenges, categories, hints, encrypted flags, submissions, dynamic scoring, **live scoreboard over SSE** | Full CTF playable end-to-end with 3 teams and a live board | Next |
-| **3 · Code runner** | Monaco editor, Judge0 integration, BullMQ worker on the worker host, ACM mode, test cases, penalties | ACM tournament playable; verdicts stream to the UI | |
-| **4 · Hackathon** | Project submissions, rubrics, judge assignment, judge queue, awards | Hackathon from submit → rubric scoring → results | |
+| **2 · CTF vertical slice** | Challenges, categories, hints, encrypted flags, submissions, dynamic scoring, **live scoreboard over SSE** | Full CTF playable end-to-end with 3 teams and a live board | **Done** |
+| **3 · Code runner** | Monaco editor, Judge0 integration, BullMQ worker on the worker host, ACM mode, test cases, penalties | ACM tournament playable; verdicts stream to the UI | **Done** |
+| **4 · Hackathon** | Project submissions, rubrics, judge assignment, judge queue, awards | Hackathon from submit → rubric scoring → results | Next |
 | **5 · Security & scale** | Plagiarism detection, audit log, moderation, rate limits, observability, load test | 500 concurrent players on one tournament, board < 200 ms p95 | |
 | **6 · Attack & Defense** | Service deployment, bots, attack capture, patch scoring, kill feed | A/D round playable with 2 teams and 1 service | |
 | **7 · Language modes** | Polyglot Battle, Golf Royale, Bug Hunt, Knockout brackets, language roulette | All 8 modes reachable from the wizard | |
@@ -516,6 +518,37 @@ players are two standings, not one shared row.
 **Flags are stored encrypted and never leave the server.** The attempt hash is
 what gets recorded; a wrong attempt is a row with `correct = false` and no
 usable flag in it.
+
+### Phase 3 — what was built
+
+| Piece | Where |
+| --- | --- |
+| The runner contract | `packages/runner` — `Runner` interface, verdicts, output comparison |
+| The Judge0 client | `packages/runner/src/judge0.ts` — base64 in both directions, `X-Auth-Token`, status-id mapping |
+| The local runner | `packages/runner/src/local.ts` — really executes Python/Node/Bash with a timeout; opt-in, never in production |
+| The simulated runner | `packages/runner/src/simulated.ts` — a documented marker convention, so a clone can exercise the whole pipeline without a sandbox |
+| The queue | `packages/queue` — the `judge` queue, one job shape (`{ submissionId }`), three attempts with exponential backoff |
+| The worker | `apps/judge` — a BullMQ worker: run every test case, write the verdict, award through the ledger, publish live events |
+| The reaper | `apps/judge/src/reaper.ts` — a submission that waits too long is marked as failed, never left `QUEUED` forever |
+| The editor | `apps/web/src/features/editor` — Monaco, language switching, starter code; loaded client-only because Monaco cannot run on the server |
+| The ACM mode | `features/problems` — problems, test cases, per-problem languages, the player's submit flow |
+| The pages | `/tournaments/$slug/problems`, `/tournaments/$slug/problems/$problemId`, `/organizer/$tournamentId/problems` |
+| Demo data | `pnpm --filter @koarena/db seed:demo` — a two-problem ACM tournament with hidden test cases |
+
+**The app never talks to the sandbox.** It writes a `Submission`, enqueues an
+id, and the worker — on a host that can reach Judge0 — runs the code and writes
+the verdict. The job carries only an id: everything else is read from the
+database, so a job can be replayed by hand and the database stays the source of
+truth.
+
+**The scoring rules stay in the engine.** The worker counts the wrong attempts
+and calls `deriveEvents('acm', …)`; it never re-implements the points or the
+penalty. Each score event carries an idempotency key that includes its type,
+so one acceptance produces two rows (a solve and a penalty) and re-running the
+judge produces none.
+
+**Only the player's failures cost penalty time.** A submission the judge could
+not run is not a wrong answer and is not counted as one.
 
 ### Phase 1 — what was built
 
@@ -569,6 +602,32 @@ These only showed up in a real browser driving the app, not in the unit tests:
 makes a flat file the parent of the directory beside it, and a directory with
 an index route needs an explicit parent. Both mistakes look like "the page is
 wrong" rather than "the page is missing".
+
+The Phase 3 browser test caught a second batch:
+
+- Monaco 0.57 ships an exports map, so the worker specifiers cannot repeat the
+  `esm/vs` prefix — `monaco-editor/editor/editor.worker?worker`, not
+  `monaco-editor/esm/vs/editor/editor.worker?worker`. The wrong path fails the
+  whole route module, so the page renders **blank**.
+- Monaco imports its own stylesheet, and the server cannot load a `.css` file.
+  Any page with an editor now renders the placeholder on the server and loads
+  the editor in the browser.
+- Base UI's `Select` shows the raw value, not the label, unless the root gets
+  an `items` prop. Every picker in the app was showing **ids** — `k2gkejyi8ycnrral`
+  instead of `C`.
+- The import protection caught a dynamic `import('@koarena/db')` inside a route
+  loader: the compiler does not prune dynamic imports, so the database client
+  was heading for the browser bundle. The query moved behind a server function.
+- One acceptance produced **two** score rows because both the solve and the
+  penalty shared one idempotency key. The key now carries the event type.
+- The simulated runner encoded the program into its token and truncated it, so
+  the verdict marker was cut off and every submission looked accepted.
+- A submission whose job was lost stayed `QUEUED` **forever**. The reaper now
+  marks it as failed, and the board says so.
+
+**A test is not the same as a running system.** Three of those — the wrong
+Monaco path, the label-less select and the stuck submission — passed every unit
+test. The live browser is still the thing that finds them.
 
 ---
 

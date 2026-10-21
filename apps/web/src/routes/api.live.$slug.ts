@@ -1,7 +1,7 @@
+import type { StandingRow } from '@koarena/ledger'
 import type { LiveEvent } from '@koarena/realtime'
 import { createFileRoute } from '@tanstack/react-router'
 import { currentStandings, openLiveStream } from '../features/live/live.server'
-import type { StandingRow } from '../features/scoring/scoring.server'
 import { getTournamentBySlug } from '../features/tournaments/tournaments.functions'
 
 export const Route = createFileRoute('/api/live/$slug')({

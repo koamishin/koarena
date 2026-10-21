@@ -17,7 +17,7 @@ import {
 import { DataGridPagination } from '@/components/reui/data-grid/data-grid-pagination'
 import { DataGridScrollArea } from '@/components/reui/data-grid/data-grid-scroll-area'
 import { DataGridTable } from '@/components/reui/data-grid/data-grid-table'
-import { Button } from '@/components/ui/button'
+import { Button, buttonVariants } from '@/components/ui/button'
 
 import type { TournamentSummary } from '../types'
 
@@ -44,11 +44,14 @@ const STATUS_LABEL = {
 export interface TournamentsGridProps {
   tournaments: TournamentSummary[]
   emptyAction?: { label: string; to: string }
+  /** Show a link into the organizer view for each tournament. */
+  showManage?: boolean
 }
 
 export function TournamentsGrid({
   tournaments,
   emptyAction,
+  showManage = false,
 }: TournamentsGridProps) {
   const [pagination, setPagination] = useState<PaginationState>({
     pageIndex: 0,
@@ -139,8 +142,27 @@ export function TournamentsGrid({
         },
         meta: { headerClassName: 'text-right', cellClassName: 'text-right' },
       },
+      ...(showManage
+        ? [
+            {
+              id: 'manage',
+              header: '',
+              size: 100,
+              cell: ({ row }: { row: { original: TournamentSummary } }) => (
+                <Link
+                  to="/organizer/$tournamentId"
+                  params={{ tournamentId: row.original.id }}
+                  className={buttonVariants({ variant: 'ghost', size: 'sm' })}
+                >
+                  Manage
+                </Link>
+              ),
+              meta: { headerClassName: '', cellClassName: 'text-right' },
+            } satisfies ColumnDef<DataGridFeatures, TournamentSummary>,
+          ]
+        : []),
     ],
-    [],
+    [showManage],
   )
 
   const table = useTable({

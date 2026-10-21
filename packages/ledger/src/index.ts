@@ -117,19 +117,28 @@ async function refreshSnapshot(
     where: teamId
       ? { tournamentId, teamId }
       : { tournamentId, teamId: null, userId },
-    select: { delta: true, type: true, metadata: true, createdAt: true },
+    select: {
+      delta: true,
+      type: true,
+      metadata: true,
+      createdAt: true,
+      refId: true,
+      id: true,
+    },
   })
 
   let score = 0
-  let solves = 0
   let penalty = 0
   let lastEventAt: Date | null = null
+  // A solve is counted once per challenge or problem, not once per event: two
+  // rows for the same thing are a duplicate, not two solves.
+  const solved = new Set<string>()
 
   for (const event of events) {
     score += event.delta
 
     if (event.type === 'CHALLENGE_SOLVED' || event.type === 'PROBLEM_SOLVED') {
-      solves += 1
+      solved.add(event.refId ?? event.id)
     }
 
     if (event.type === 'SUBMISSION_PENALTY') {
@@ -144,7 +153,7 @@ async function refreshSnapshot(
 
   const data = {
     score,
-    solves,
+    solves: solved.size,
     penalty,
     lastEventAt,
   }
@@ -276,6 +285,87 @@ export async function getStandings(
         : null,
     }
   })
+}
+
+/**
+ * Rebuild every snapshot for a tournament from the ledger.
+ *
+ * The snapshot is derived state, so this can be run at any time. It is the
+ * repair path: a deleted or corrupted board comes back from the events, which
+ * are the source of truth.
+ */
+export async function rebuildSnapshots(tournamentId: string): Promise<number> {
+  const prisma = getPrisma()
+
+  const participants = await prisma.scoreEvent.findMany({
+    where: { tournamentId },
+    select: { teamId: true, userId: true },
+    distinct: ['teamId', 'userId'],
+  })
+
+  // The board is rebuilt from scratch: a participant whose events are all gone
+  // has no standing, and its stale snapshot must not outlive them.
+  await prisma.scoreSnapshot.deleteMany({ where: { tournamentId } })
+
+  for (const participant of participants) {
+    await prisma.$transaction(async (tx) => {
+      await refreshSnapshot(
+        tx,
+        tournamentId,
+        participant.teamId,
+        participant.userId,
+      )
+    })
+  }
+
+  await rebuildSolveCounts(tournamentId)
+
+  return participants.length
+}
+
+/**
+ * Rebuild the solve counter on every problem of a tournament.
+ *
+ * The counter is what the problem board shows next to a title. It counts
+ * participants, not submissions, and the ledger decides who solved what — so
+ * the counter is rebuilt from the ledger rather than trusted.
+ */
+export async function rebuildSolveCounts(
+  tournamentId: string,
+): Promise<number> {
+  const prisma = getPrisma()
+
+  const problems = await prisma.problem.findMany({
+    where: { tournamentId },
+    select: { id: true },
+  })
+
+  if (problems.length === 0) return 0
+
+  const solves = await prisma.scoreEvent.findMany({
+    where: { tournamentId, type: 'PROBLEM_SOLVED', refType: 'problem' },
+    select: { refId: true, teamId: true, userId: true },
+  })
+
+  const participantsByProblem = new Map<string, Set<string>>()
+
+  for (const solve of solves) {
+    if (!solve.refId) continue
+    const key = solve.teamId ?? solve.userId
+    if (!key) continue
+    const set = participantsByProblem.get(solve.refId) ?? new Set<string>()
+    set.add(key)
+    participantsByProblem.set(solve.refId, set)
+  }
+
+  for (const problem of problems) {
+    await prisma.problem.update({
+      where: { id: problem.id },
+      data: { solveCount: participantsByProblem.get(problem.id)?.size ?? 0 },
+    })
+  }
+
+  return problems.length
 }
 
 /**

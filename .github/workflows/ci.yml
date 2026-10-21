@@ -16,6 +16,8 @@ env:
   # A throwaway key for the test suite: the flags the tests create are never
   # read outside the database.
   FLAG_ENCRYPTION_KEY: CQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQk=
+  # The judging tests must not reach for a sandbox.
+  RUNNER_MODE: simulated
 
 jobs:
   verify:

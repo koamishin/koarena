@@ -1,0 +1,19 @@
+{
+  "name": "@koarena/queue",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "bullmq": "6.3.19",
+    "ioredis": "6.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "typescript": "7.0.2"
+  }
+}

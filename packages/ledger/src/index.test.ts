@@ -3,17 +3,19 @@
 import { getPrisma } from '@koarena/db'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import {
+  getStandings,
+  rebuildSnapshots,
+  rebuildSolveCounts,
+  recordScoreEvent,
+  rerankStandings,
+} from './index'
+import {
   cleanup,
+  createTestTournament,
   createTestUser,
   hasDatabase,
   uniqueSuffix,
-} from '../../test/db'
-import { createTournamentFor } from '../tournaments/tournaments.server'
-import {
-  getStandings,
-  recordScoreEvent,
-  rerankStandings,
-} from './scoring.server'
+} from './test-support'
 
 const suite = hasDatabase ? describe : describe.skip
 
@@ -27,17 +29,9 @@ suite('the score ledger', () => {
     const user = await createTestUser('ORGANIZER')
     createdUsers.push(user.id)
 
-    const tournament = await createTournamentFor(user.id, {
+    const tournament = await createTestTournament(user.id, {
       name: 'Ledger Test',
-      slug: `ledger-${uniqueSuffix()}`,
-      gameMode: 'CTF',
-      visibility: 'PUBLIC',
-      startsAt: new Date(Date.now() + 86_400_000),
-      endsAt: new Date(Date.now() + 7 * 86_400_000),
-      teamSizeMin: 1,
-      teamSizeMax: 5,
-      languageIds: [],
-      config: {},
+      config: { basePoints: 500, firstBloodBonus: 25 },
     })
 
     tournamentId = tournament.id
@@ -177,5 +171,148 @@ suite('the score ledger', () => {
       const total = events.reduce((sum, event) => sum + event.delta, 0)
       expect(snapshot.score).toBe(total)
     }
+  })
+
+  it('counts a solve once per thing solved, not once per event', async () => {
+    const user = await createTestUser()
+    createdUsers.push(user.id)
+
+    const problemId = `problem-${uniqueSuffix()}`
+
+    // Two rows for the same problem: a duplicate, not two solves.
+    await recordScoreEvent({
+      tournamentId,
+      userId: user.id,
+      type: 'PROBLEM_SOLVED',
+      points: 1,
+      delta: 1,
+      refType: 'problem',
+      refId: problemId,
+      idempotencyKey: `a:${uniqueSuffix()}`,
+    })
+    await recordScoreEvent({
+      tournamentId,
+      userId: user.id,
+      type: 'PROBLEM_SOLVED',
+      points: 1,
+      delta: 1,
+      refType: 'problem',
+      refId: problemId,
+      idempotencyKey: `b:${uniqueSuffix()}`,
+    })
+
+    const standings = await getStandings(tournamentId, gameMode)
+    const mine = standings.find((row) => row.id === user.id)
+
+    expect(mine?.solves).toBe(1)
+  })
+
+  it('rebuilds the snapshots from the events', async () => {
+    const user = await createTestUser()
+    createdUsers.push(user.id)
+
+    await recordScoreEvent({
+      tournamentId,
+      userId: user.id,
+      type: 'CHALLENGE_SOLVED',
+      points: 250,
+      delta: 250,
+      idempotencyKey: `rebuild:${uniqueSuffix()}`,
+    })
+    const prisma = getPrisma()
+    await prisma.scoreSnapshot.deleteMany({
+      where: { tournamentId, teamId: null, userId: user.id },
+    })
+
+    const before = await getStandings(tournamentId, gameMode)
+    expect(before.find((row) => row.id === user.id)).toBeUndefined()
+
+    await rebuildSnapshots(tournamentId)
+
+    const after = await getStandings(tournamentId, gameMode)
+    const mine = after.find((row) => row.id === user.id)
+
+    expect(mine?.score).toBe(250)
+    expect(mine?.solves).toBe(1)
+  })
+
+  it('drops the standing of a participant whose events are gone', async () => {
+    const user = await createTestUser()
+    createdUsers.push(user.id)
+
+    await recordScoreEvent({
+      tournamentId,
+      userId: user.id,
+      type: 'CHALLENGE_SOLVED',
+      points: 75,
+      delta: 75,
+      idempotencyKey: `orphan:${uniqueSuffix()}`,
+    })
+
+    const prisma = getPrisma()
+    expect(
+      (await getStandings(tournamentId, gameMode)).find(
+        (row) => row.id === user.id,
+      ),
+    ).toBeDefined()
+
+    // The events are the source of truth: with them gone, the standing goes too.
+    await prisma.scoreEvent.deleteMany({
+      where: { tournamentId, teamId: null, userId: user.id },
+    })
+    await rebuildSnapshots(tournamentId)
+
+    expect(
+      (await getStandings(tournamentId, gameMode)).find(
+        (row) => row.id === user.id,
+      ),
+    ).toBeUndefined()
+  })
+
+  it('rebuilds the problem solve counter from the ledger', async () => {
+    if (!hasDatabase) return
+
+    const prisma = getPrisma()
+    const organizer = await createTestUser('ORGANIZER')
+    createdUsers.push(organizer.id)
+
+    const tournament = await createTestTournament(organizer.id, {
+      gameMode: 'ACM',
+    })
+
+    const problem = await prisma.problem.create({
+      data: {
+        tournamentId: tournament.id,
+        authorId: organizer.id,
+        slug: `counter-${uniqueSuffix()}`,
+        title: 'Counter',
+        statement: 'Count the solves.',
+        solveCount: 99,
+      },
+      select: { id: true },
+    })
+
+    const player = await createTestUser()
+    createdUsers.push(player.id)
+
+    await recordScoreEvent({
+      tournamentId: tournament.id,
+      userId: player.id,
+      type: 'PROBLEM_SOLVED',
+      points: 1,
+      delta: 1,
+      refType: 'problem',
+      refId: problem.id,
+      idempotencyKey: `counter:${uniqueSuffix()}`,
+    })
+
+    await rebuildSolveCounts(tournament.id)
+
+    const after = await prisma.problem.findUniqueOrThrow({
+      where: { id: problem.id },
+      select: { solveCount: true },
+    })
+
+    expect(after.solveCount).toBe(1)
   })
 })

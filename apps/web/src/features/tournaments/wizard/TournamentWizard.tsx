@@ -259,6 +259,10 @@ export function TournamentWizard({
               <div className="flex flex-col gap-1.5">
                 <Label htmlFor="gameMode">Game mode</Label>
                 <Select
+                  items={modes.map((mode) => ({
+                    value: mode.enum,
+                    label: mode.label,
+                  }))}
                   value={draft.gameMode}
                   onValueChange={(value) => setMode(value as GameModeEnum)}
                 >
@@ -347,6 +351,11 @@ export function TournamentWizard({
               <div className="flex flex-col gap-1.5">
                 <Label htmlFor="visibility">Visibility</Label>
                 <Select
+                  items={[
+                    { value: 'PUBLIC', label: 'Public — listed and joinable' },
+                    { value: 'UNLISTED', label: 'Unlisted — joinable by link' },
+                    { value: 'PRIVATE', label: 'Private — join code only' },
+                  ]}
                   value={draft.visibility}
                   onValueChange={(value) =>
                     update('visibility', value as Draft['visibility'])

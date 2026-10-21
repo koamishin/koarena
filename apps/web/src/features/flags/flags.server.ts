@@ -8,9 +8,8 @@ import {
 } from '@koarena/crypto'
 import { getPrisma, ScoreEventType } from '@koarena/db'
 import { ctfSolveAward } from '@koarena/game'
+import { recordScoreEvent, rerankStandings } from '@koarena/ledger'
 import { publishLiveEvent } from '@koarena/realtime'
-
-import { recordScoreEvent, rerankStandings } from '../scoring/scoring.server'
 
 /**
  * Server-only: flag storage and the solve path.
