@@ -7,7 +7,7 @@
     "node": ">=22.0.0"
   },
   "scripts": {
-    "dev": "turbo run dev",
+    "dev": "node scripts/dev.mjs",
     "build": "turbo run build",
     "start": "turbo run start",
     "lint": "biome check .",
@@ -24,7 +24,8 @@
     "infra:up": "docker compose -f infra/docker-compose.yml up -d",
     "infra:down": "docker compose -f infra/docker-compose.yml down",
     "dev:judge": "pnpm --filter @koarena/judge dev",
-    "judge": "pnpm --filter @koarena/judge start"
+    "judge": "pnpm --filter @koarena/judge start",
+    "postinstall": "node scripts/postinstall.mjs"
   },
   "devDependencies": {
     "@biomejs/biome": "2.5.15",

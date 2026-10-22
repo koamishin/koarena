@@ -61,11 +61,13 @@ one, with no reload.
 ## Quick start
 
 You need **Node 22+**, **pnpm 10+**, a **Postgres** and a **Redis**.
+[Bun](https://bun.sh) works too — `bun install` and `bun run dev` are equivalent
+to the pnpm commands below.
 
 ```bash
 git clone https://github.com/koamishin/koarena.git
 cd koarena
-pnpm install
+pnpm install            # also generates the Prisma client
 
 # Postgres and Redis in Docker
 pnpm infra:up
@@ -78,14 +80,18 @@ cp apps/judge/.env.example apps/judge/.env
 # apps/web/.env and in the seed's environment
 echo "FLAG_ENCRYPTION_KEY=\"$(openssl rand -base64 32)\"" >> apps/web/.env
 
-pnpm db:generate
 pnpm db:migrate
 pnpm db:seed            # 23 languages + a demo organization
 pnpm db:seed:demo       # a four-challenge CTF and a two-problem ACM round
 
-pnpm dev                # the app, on http://localhost:3100
-pnpm dev:judge          # the judging worker, in a second terminal
+pnpm dev                # the app and the judging worker
 ```
+
+`pnpm dev` starts both the app and the judging worker, with a preflight:
+
+* it generates the Prisma client if it is missing — the generated code is not
+  in the repository, so a fresh clone needs it;
+* it refuses to start with a clear message if port 3100 is taken.
 
 Open <http://localhost:3100>, create an account, and pick a team.
 
@@ -228,7 +234,7 @@ Full topology, sizing and the deploy sequence: **[docs/DEPLOYMENT.md](./docs/DEP
 
 | Command | What it does |
 | --- | --- |
-| `pnpm dev` | Run the app (and the worker) in watch mode |
+| `pnpm dev` | Run the app and the judging worker, with a preflight |
 | `pnpm dev:judge` | Run only the judging worker |
 | `pnpm build` | Build all packages |
 | `pnpm lint` | Biome check |
@@ -236,6 +242,15 @@ Full topology, sizing and the deploy sequence: **[docs/DEPLOYMENT.md](./docs/DEP
 | `pnpm test` | Vitest across the workspace (the DB suites need `DATABASE_URL`) |
 | `pnpm db:generate` / `db:migrate` / `db:deploy` / `db:seed` / `db:studio` | Prisma |
 | `pnpm infra:up` / `infra:down` | Local Postgres, Redis (and MinIO with `--profile storage`) |
+
+### When it does not start
+
+| What you see | What it means |
+| --- | --- |
+| `Cannot find module '.../generated/prisma/client'` | The Prisma client has not been generated. `pnpm install` does it; `pnpm db:generate` does it by hand. |
+| `Port 3100 is already in use` | Another dev server is running. The preflight prints the PID — `kill <pid>`. The port is pinned because Clerk ties its sign-in redirect to the origin. |
+| `DATABASE_URL and REDIS_URL are not set` | The worker has no `apps/judge/.env`. Copy `apps/judge/.env.example` and point it at the same database and Redis as `apps/web/.env`. |
+| `The judge never returned a verdict` | The worker is not running, or it points at a different database. |
 
 ---
 
